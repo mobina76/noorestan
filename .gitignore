@@ -1,0 +1,29 @@
+# Node / Angular
+node_modules/
+dist/
+build/
+coverage/
+.angular/
+*.log
+
+# .NET
+bin/
+obj/
+packages/
+*.user
+*.suo
+
+# Environment and secrets
+.env
+.env.*
+!.env.example
+appsettings.*.json
+!appsettings.Development.example.json
+
+# Editors / OS
+.vscode/
+.idea/
+Thumbs.db
+.DS_Store
+*.tmp
+*.swp

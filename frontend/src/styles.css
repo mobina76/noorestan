@@ -1,0 +1,101 @@
+@import "tailwindcss";
+
+:root {
+  color-scheme: dark;
+  --color-bg: #050912;
+  --color-bg-elevated: #08111f;
+  --color-surface: #0b1626;
+  --color-surface-strong: #10233a;
+  --color-text: #f4f8fb;
+  --color-text-muted: #9db0c4;
+  --color-border: #20364d;
+  --color-border-strong: #78c9ff;
+  --color-primary: #8bd4ff;
+  --color-primary-contrast: #03101a;
+  --color-glow: rgb(91 190 255 / 22%);
+  --color-danger: #ff9aab;
+  --color-success: #79dfba;
+  --radius-sm: 0.5rem;
+  --radius-md: 0.8rem;
+  --radius-lg: 1.25rem;
+  --radius-xl: 1.75rem;
+  --space-section: clamp(4.5rem, 9vw, 8rem);
+  --shadow-surface: 0 24px 60px rgb(0 0 0 / 25%);
+  --shadow-glow: 0 0 42px var(--color-glow);
+  --duration-fast: 140ms;
+  --duration-base: 240ms;
+}
+
+@theme inline {
+  --color-background: var(--color-bg);
+  --color-elevated: var(--color-bg-elevated);
+  --color-surface: var(--color-surface);
+  --color-surface-strong: var(--color-surface-strong);
+  --color-ink: var(--color-text);
+  --color-muted: var(--color-text-muted);
+  --color-line: var(--color-border);
+  --color-line-strong: var(--color-border-strong);
+  --color-primary: var(--color-primary);
+  --color-primary-contrast: var(--color-primary-contrast);
+  --color-danger: var(--color-danger);
+  --color-success: var(--color-success);
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  background: var(--color-bg);
+  color: var(--color-text);
+  direction: rtl;
+  scroll-behavior: smooth;
+}
+
+body {
+  min-width: 20rem;
+  min-height: 100vh;
+  margin: 0;
+  background:
+    radial-gradient(circle at 76% -10%, rgb(63 163 224 / 12%), transparent 34rem),
+    var(--color-bg);
+  color: var(--color-text);
+  font-family: "Vazirmatn", "IRANSansX", Tahoma, Arial, sans-serif;
+  line-height: 1.75;
+  text-rendering: optimizeLegibility;
+}
+
+button,
+a,
+input,
+select,
+textarea {
+  transition-duration: var(--duration-fast);
+  transition-property: color, background-color, border-color, opacity, transform, box-shadow;
+}
+
+:focus-visible {
+  outline: 3px solid var(--color-primary);
+  outline-offset: 3px;
+}
+
+::selection {
+  background: var(--color-primary);
+  color: var(--color-primary-contrast);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+@media (forced-colors: active) {
+  :focus-visible { outline-color: Highlight; }
+}

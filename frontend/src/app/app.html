@@ -1,0 +1,8 @@
+<a class="skip-link" href="#main">رفتن به محتوای اصلی</a>
+<header class="site-header"><nav class="nav-shell" aria-label="ناوبری اصلی">
+  <a routerLink="/" class="brand" aria-label="نورستان، صفحه اصلی"><span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i></span><span><strong>نورستان</strong><small>روشنایی برای معماری</small></span></a>
+  <button class="menu-button" type="button" (click)="menuOpen.update(value => !value)" [attr.aria-expanded]="menuOpen()" aria-controls="main-menu"><span class="sr-only">نمایش فهرست</span><span></span><span></span></button>
+  <div id="main-menu" class="nav-links" [class.open]="menuOpen()"><a routerLink="/products" routerLinkActive="active" (click)="menuOpen.set(false)">محصولات</a><a routerLink="/company" routerLinkActive="active" (click)="menuOpen.set(false)">درباره نورستان</a><a routerLink="/contact" routerLinkActive="active" (click)="menuOpen.set(false)">تماس با ما</a><a class="nav-cta" routerLink="/contact" (click)="menuOpen.set(false)">درخواست مشاوره <span aria-hidden="true">←</span></a></div>
+</nav></header>
+<main id="main"><router-outlet /></main>
+<footer class="site-footer"><div><a routerLink="/" class="brand footer-brand"><span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i></span><span><strong>نورستان</strong><small>نماینده فروش محصولات مازی‌نور</small></span></a></div><div><h2>دسترسی سریع</h2><a routerLink="/products">محصولات</a><a routerLink="/company">درباره ما</a><a routerLink="/contact">تماس</a></div><div><h2>ارتباط با نورستان</h2><a href="tel:+982100000000">۰۲۱–۰۰۰۰۰۰۰۰</a><a href="mailto:info&#64;noorestan.ir">info&#64;noorestan.ir</a><p>برای قیمت، موجودی و سفارش با ما تماس بگیرید.</p></div><p class="copyright">© {{ year }} نورستان. تمامی حقوق محفوظ است.</p></footer>

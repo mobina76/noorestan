@@ -1,0 +1,100 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://noorestan.example/contracts/mazinoor-extraction.schema.json",
+  "title": "Normalized Official Mazinoor Website Extraction",
+  "description": "Internal boundary between source-specific retrieval/parsing and catalog import.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "sourceBaseUrl", "extractorVersion", "fetchedAt", "categories", "products"],
+  "properties": {
+    "schemaVersion": { "const": "1.0" },
+    "sourceBaseUrl": { "type": "string", "format": "uri" },
+    "extractorVersion": { "type": "string", "minLength": 1 },
+    "fetchedAt": { "type": "string", "format": "date-time" },
+    "categories": { "type": "array", "items": { "$ref": "#/$defs/category" } },
+    "products": { "type": "array", "items": { "$ref": "#/$defs/product" } },
+    "warnings": { "type": "array", "items": { "type": "string" } }
+  },
+  "$defs": {
+    "trace": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["sourceUrl", "sourceContentHash"],
+      "properties": {
+        "sourceUrl": { "type": "string", "format": "uri" },
+        "sourceContentHash": { "type": "string", "minLength": 32, "maxLength": 128 }
+      }
+    },
+    "category": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["sourceKey", "nameFa", "trace", "specifications"],
+      "properties": {
+        "sourceKey": { "type": "string", "minLength": 1, "maxLength": 200 },
+        "nameFa": { "type": "string", "minLength": 1, "maxLength": 300 },
+        "descriptionFa": { "type": "string", "maxLength": 5000 },
+        "trace": { "$ref": "#/$defs/trace" },
+        "specifications": { "type": "array", "items": { "$ref": "#/$defs/specificationDefinition" } },
+        "warnings": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "specificationDefinition": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["key", "labelFa", "valueType"],
+      "properties": {
+        "key": { "type": "string", "pattern": "^[a-z0-9-]+$", "maxLength": 100 },
+        "labelFa": { "type": "string", "minLength": 1, "maxLength": 200 },
+        "valueType": { "enum": ["text", "number", "boolean", "choice"] },
+        "unitFa": { "type": "string", "maxLength": 50 },
+        "isFilterable": { "type": "boolean", "default": false },
+        "choicesFa": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1, "maxLength": 200 },
+          "uniqueItems": true
+        }
+      }
+    },
+    "product": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["categorySourceKey", "nameFa", "descriptionFa", "trace", "featuresFa", "specifications", "images"],
+      "anyOf": [
+        { "required": ["mazinoorProductCode"] },
+        { "properties": { "trace": { "required": ["sourceUrl"] } } }
+      ],
+      "properties": {
+        "mazinoorProductCode": { "type": "string", "minLength": 1, "maxLength": 200 },
+        "categorySourceKey": { "type": "string", "minLength": 1, "maxLength": 200 },
+        "nameFa": { "type": "string", "minLength": 1, "maxLength": 300 },
+        "shortDescriptionFa": { "type": "string", "maxLength": 500 },
+        "descriptionFa": { "type": "string", "minLength": 1, "maxLength": 20000 },
+        "technicalNotesFa": { "type": "string", "maxLength": 20000 },
+        "trace": { "$ref": "#/$defs/trace" },
+        "featuresFa": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1, "maxLength": 500 },
+          "maxItems": 100
+        },
+        "specifications": {
+          "type": "object",
+          "propertyNames": { "pattern": "^[a-z0-9-]+$" },
+          "additionalProperties": { "type": ["string", "number", "boolean"] }
+        },
+        "images": { "type": "array", "maxItems": 20, "items": { "$ref": "#/$defs/image" } },
+        "warnings": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "image": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["sourceUrl", "altTextFa"],
+      "properties": {
+        "sourceUrl": { "type": "string", "format": "uri" },
+        "altTextFa": { "type": "string", "maxLength": 300 },
+        "isPrimary": { "type": "boolean", "default": false },
+        "sourceContentHash": { "type": "string", "minLength": 32, "maxLength": 128 }
+      }
+    }
+  }
+}

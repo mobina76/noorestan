@@ -1,0 +1,768 @@
+openapi: 3.1.0
+info:
+  title: Noorestan Catalog API
+  version: 1.0.0-draft
+  description: >-
+    Contract for the public catalog and protected administration application. There are no cart,
+    checkout, payment, customer-account, online-order, inventory, or visitor-inquiry endpoints.
+servers:
+  - url: /api/v1
+tags:
+  - name: Public
+  - name: Authentication
+  - name: Admin Catalog
+  - name: Admin Content
+  - name: Owner Accounts
+  - name: Operations
+paths:
+  /public/site:
+    get:
+      tags: [Public]
+      operationId: getPublicSite
+      responses:
+        '200':
+          description: Public business profile and visible managed content slots
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PublicSite' }
+  /public/categories:
+    get:
+      tags: [Public]
+      operationId: listPublicCategories
+      responses:
+        '200':
+          description: Visible categories containing published products
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/CategorySummary' }
+  /public/categories/{slug}/filters:
+    get:
+      tags: [Public]
+      operationId: getCategoryFilters
+      parameters:
+        - $ref: '#/components/parameters/Slug'
+      responses:
+        '200':
+          description: Applicable filter definitions and available values
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/FilterDefinition' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /public/products:
+    get:
+      tags: [Public]
+      operationId: listPublicProducts
+      parameters:
+        - { name: q, in: query, schema: { type: string, maxLength: 200 } }
+        - { name: category, in: query, schema: { type: string } }
+        - name: filter
+          in: query
+          description: Repeatable `definitionKey:value` category filter.
+          schema: { type: array, items: { type: string }, maxItems: 20 }
+        - { $ref: '#/components/parameters/Page' }
+        - { $ref: '#/components/parameters/PageSize' }
+      responses:
+        '200':
+          description: Published products only
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PagedProducts' }
+        '400': { $ref: '#/components/responses/ValidationError' }
+  /public/products/{slug}:
+    get:
+      tags: [Public]
+      operationId: getPublicProduct
+      parameters:
+        - $ref: '#/components/parameters/Slug'
+      responses:
+        '200':
+          description: Published product details
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ProductDetail' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /auth/session:
+    get:
+      tags: [Authentication]
+      operationId: getSession
+      responses:
+        '200':
+          description: Active administrator session and antiforgery token
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Session' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+  /auth/login:
+    post:
+      tags: [Authentication]
+      operationId: login
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/LoginRequest' }
+      responses:
+        '204': { description: Secure session cookie established }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+  /auth/logout:
+    post:
+      tags: [Authentication]
+      security: [{ cookieAuth: [], csrfToken: [] }]
+      operationId: logout
+      responses:
+        '204': { description: Session invalidated }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+  /admin/products:
+    get:
+      tags: [Admin Catalog]
+      security: [{ cookieAuth: [] }]
+      operationId: listAdminProducts
+      parameters:
+        - { name: status, in: query, schema: { $ref: '#/components/schemas/ProductStatus' } }
+        - { $ref: '#/components/parameters/Page' }
+        - { $ref: '#/components/parameters/PageSize' }
+      responses:
+        '200': { description: Bounded administrator product list }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+    post:
+      tags: [Admin Catalog]
+      security: [{ cookieAuth: [], csrfToken: [] }]
+      operationId: createProduct
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ProductWrite' }
+      responses:
+        '201':
+          description: Draft product created
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AdminProduct' }
+        '400': { $ref: '#/components/responses/ValidationError' }
+  /admin/products/{id}:
+    get:
+      tags: [Admin Catalog]
+      security: [{ cookieAuth: [] }]
+      operationId: getAdminProduct
+      parameters: [{ $ref: '#/components/parameters/Id' }]
+      responses:
+        '200':
+          description: Product in any non-deleted state
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AdminProduct' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    put:
+      tags: [Admin Catalog]
+      security: [{ cookieAuth: [], csrfToken: [] }]
+      operationId: updateProduct
+      parameters:
+        - $ref: '#/components/parameters/Id'
+        - $ref: '#/components/parameters/IfMatch'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ProductWrite' }
+      responses:
+        '200':
+          description: Updated product
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AdminProduct' }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '409': { $ref: '#/components/responses/Conflict' }
+    delete:
+      tags: [Admin Catalog]
+      security: [{ cookieAuth: [], csrfToken: [] }]
+      operationId: permanentlyDeleteProduct
+      description: Permanently deletes an archived product after explicit confirmation.
+      parameters:
+        - $ref: '#/components/parameters/Id'
+        - $ref: '#/components/parameters/IfMatch'
+        - name: confirmation
+          in: header
+          required: true
+          schema: { type: string, const: permanently-delete }
+      responses:
+        '204': { description: Permanently deleted; object cleanup completed or durably queued }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '409': { $ref: '#/components/responses/Conflict' }
+  /admin/products/{id}/status:
+    post:
+      tags: [Admin Catalog]
+      security: [{ cookieAuth: [], csrfToken: [] }]
+      operationId: transitionProductStatus
+      parameters:
+        - $ref: '#/components/parameters/Id'
+        - $ref: '#/components/parameters/IfMatch'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [targetStatus]
+              properties:
+                targetStatus: { $ref: '#/components/schemas/ProductStatus' }
+      responses:
+        '200':
+          description: Transition completed
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AdminProduct' }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '409': { $ref: '#/components/responses/Conflict' }
+  /admin/products/{id}/images:
+    post:
+      tags: [Admin Catalog]
+      security: [{ cookieAuth: [], csrfToken: [] }]
+      operationId: uploadProductImage
+      parameters: [{ $ref: '#/components/parameters/Id' }]
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file, altTextFa]
+              properties:
+                file: { type: string, format: binary }
+                altTextFa: { type: string, maxLength: 300 }
+      responses:
+        '202': { description: Accepted for validation and variant processing }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '413': { description: Image exceeds configured limit }
+  /admin/products/{id}/images/order:
+    put:
+      tags: [Admin Catalog]
+      security: [{ cookieAuth: [], csrfToken: [] }]
+      operationId: reorderProductImages
+      parameters:
+        - $ref: '#/components/parameters/Id'
+        - $ref: '#/components/parameters/IfMatch'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [orderedImageIds, primaryImageId]
+              properties:
+                orderedImageIds: { type: array, items: { type: string, format: uuid } }
+                primaryImageId: { type: string, format: uuid }
+      responses:
+        '200': { description: Ordering and primary image updated atomically }
+        '409': { $ref: '#/components/responses/Conflict' }
+  /admin/products/{id}/images/{imageId}:
+    delete:
+      tags: [Admin Catalog]
+      security: [{ cookieAuth: [], csrfToken: [] }]
+      operationId: deleteProductImage
+      parameters:
+        - $ref: '#/components/parameters/Id'
+        - { name: imageId, in: path, required: true, schema: { type: string, format: uuid } }
+        - $ref: '#/components/parameters/IfMatch'
+      responses:
+        '204': { description: Metadata removed and object cleanup completed or queued }
+        '409': { $ref: '#/components/responses/Conflict' }
+  /admin/categories:
+    get:
+      tags: [Admin Catalog]
+      security: [{ cookieAuth: [] }]
+      operationId: listAdminCategories
+      responses:
+        '200': { description: Categories with specification definitions and product counts }
+    post:
+      tags: [Admin Catalog]
+      security: [{ cookieAuth: [], csrfToken: [] }]
+      operationId: createCategory
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CategoryWrite' }
+      responses:
+        '201': { description: Category created }
+        '400': { $ref: '#/components/responses/ValidationError' }
+  /admin/categories/{id}:
+    put:
+      tags: [Admin Catalog]
+      security: [{ cookieAuth: [], csrfToken: [] }]
+      operationId: updateCategory
+      parameters:
+        - $ref: '#/components/parameters/Id'
+        - $ref: '#/components/parameters/IfMatch'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CategoryWrite' }
+      responses:
+        '200': { description: Category and definition changes saved }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '409': { $ref: '#/components/responses/Conflict' }
+    delete:
+      tags: [Admin Catalog]
+      security: [{ cookieAuth: [], csrfToken: [] }]
+      operationId: deleteCategory
+      parameters:
+        - $ref: '#/components/parameters/Id'
+        - $ref: '#/components/parameters/IfMatch'
+      responses:
+        '204': { description: Empty category deleted }
+        '409':
+          description: Category still contains non-archived products or version is stale
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+  /admin/site:
+    get:
+      tags: [Admin Content]
+      security: [{ cookieAuth: [] }]
+      operationId: getAdminSite
+      responses:
+        '200':
+          description: Editable business profile and bounded content slots
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AdminSite' }
+    put:
+      tags: [Admin Content]
+      security: [{ cookieAuth: [], csrfToken: [] }]
+      operationId: updateAdminSite
+      parameters: [{ $ref: '#/components/parameters/IfMatch' }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/AdminSiteWrite' }
+      responses:
+        '200': { description: Site content updated }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '409': { $ref: '#/components/responses/Conflict' }
+  /owner/accounts:
+    get:
+      tags: [Owner Accounts]
+      security: [{ cookieAuth: [] }]
+      operationId: listAdministratorAccounts
+      responses:
+        '200': { description: Administrator accounts; owner policy required }
+        '403': { $ref: '#/components/responses/Forbidden' }
+    post:
+      tags: [Owner Accounts]
+      security: [{ cookieAuth: [], csrfToken: [] }]
+      operationId: createAdministratorAccount
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/AdministratorAccountCreate' }
+      responses:
+        '201': { description: Individual administrator account created }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+  /owner/accounts/{id}/deactivate:
+    post:
+      tags: [Owner Accounts]
+      security: [{ cookieAuth: [], csrfToken: [] }]
+      operationId: deactivateAdministratorAccount
+      parameters:
+        - $ref: '#/components/parameters/Id'
+        - $ref: '#/components/parameters/IfMatch'
+      responses:
+        '204': { description: Account deactivated and sessions revoked }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '409': { $ref: '#/components/responses/Conflict' }
+  /owner/transfer:
+    post:
+      tags: [Owner Accounts]
+      security: [{ cookieAuth: [], csrfToken: [] }]
+      operationId: transferOwnership
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [newOwnerId]
+              properties:
+                newOwnerId: { type: string, format: uuid }
+      responses:
+        '204': { description: Ownership transferred atomically }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '409': { $ref: '#/components/responses/Conflict' }
+  /owner/imports/mazinoor:
+    post:
+      tags: [Owner Accounts]
+      security: [{ cookieAuth: [], csrfToken: [] }]
+      operationId: startMazinoorImport
+      description: >-
+        Explicitly starts a dry-run or commit import from the configured official Mazinoor website.
+        This endpoint does not create a schedule or continuous synchronization.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/MazinoorImportRequest' }
+      responses:
+        '202':
+          description: Durable import run queued
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ImportRun' }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '409':
+          description: Another import is active
+          content: { application/problem+json: { schema: { $ref: '#/components/schemas/Problem' } } }
+  /owner/imports/mazinoor/{id}:
+    get:
+      tags: [Owner Accounts]
+      security: [{ cookieAuth: [] }]
+      operationId: getMazinoorImport
+      parameters: [{ $ref: '#/components/parameters/Id' }]
+      responses:
+        '200':
+          description: Run progress, summary, and paged item-result link
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ImportRun' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /owner/imports/mazinoor/{id}/items:
+    get:
+      tags: [Owner Accounts]
+      security: [{ cookieAuth: [] }]
+      operationId: listMazinoorImportItems
+      parameters:
+        - $ref: '#/components/parameters/Id'
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+      responses:
+        '200':
+          description: Paged per-source-product outcomes, warnings, errors, and traceability
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items, page, pageSize, total]
+                properties:
+                  items: { type: array, items: { $ref: '#/components/schemas/ImportItem' } }
+                  page: { type: integer }
+                  pageSize: { type: integer }
+                  total: { type: integer }
+        '403': { $ref: '#/components/responses/Forbidden' }
+  /health/live:
+    get:
+      tags: [Operations]
+      operationId: liveness
+      responses:
+        '200': { description: Process is live }
+  /health/ready:
+    get:
+      tags: [Operations]
+      operationId: readiness
+      responses:
+        '200': { description: Required dependencies are ready }
+        '503': { description: A required dependency is unavailable }
+components:
+  securitySchemes:
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: __Host-noorestan-session
+    csrfToken:
+      type: apiKey
+      in: header
+      name: X-CSRF-TOKEN
+  parameters:
+    Id: { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+    Slug: { name: slug, in: path, required: true, schema: { type: string, maxLength: 160 } }
+    Page: { name: page, in: query, schema: { type: integer, minimum: 1, default: 1 } }
+    PageSize: { name: pageSize, in: query, schema: { type: integer, minimum: 1, maximum: 100, default: 24 } }
+    IfMatch:
+      name: If-Match
+      in: header
+      required: true
+      description: Opaque concurrency token from the latest representation.
+      schema: { type: string }
+  responses:
+    Unauthorized:
+      description: Authentication required or invalid
+      content: { application/problem+json: { schema: { $ref: '#/components/schemas/Problem' } } }
+    Forbidden:
+      description: Authenticated account lacks the required owner policy
+      content: { application/problem+json: { schema: { $ref: '#/components/schemas/Problem' } } }
+    NotFound:
+      description: Resource does not exist or is not public
+      content: { application/problem+json: { schema: { $ref: '#/components/schemas/Problem' } } }
+    Conflict:
+      description: Concurrency or lifecycle/integrity conflict
+      content: { application/problem+json: { schema: { $ref: '#/components/schemas/Problem' } } }
+    ValidationError:
+      description: Request validation failed
+      content: { application/problem+json: { schema: { $ref: '#/components/schemas/ValidationProblem' } } }
+    TooManyRequests:
+      description: Rate limit exceeded
+      headers:
+        Retry-After: { schema: { type: integer } }
+  schemas:
+    Problem:
+      type: object
+      required: [type, title, status]
+      properties:
+        type: { type: string, format: uri-reference }
+        title: { type: string }
+        status: { type: integer }
+        detail: { type: string }
+        correlationId: { type: string }
+    ValidationProblem:
+      allOf:
+        - $ref: '#/components/schemas/Problem'
+        - type: object
+          properties:
+            errors:
+              type: object
+              additionalProperties: { type: array, items: { type: string } }
+    ProductStatus: { type: string, enum: [draft, published, hidden, archived] }
+    Image:
+      type: object
+      required: [id, altTextFa, variants]
+      properties:
+        id: { type: string, format: uuid }
+        altTextFa: { type: string }
+        isPrimary: { type: boolean }
+        variants:
+          type: array
+          items:
+            type: object
+            required: [url, width, height, mediaType]
+            properties:
+              url: { type: string, format: uri-reference }
+              width: { type: integer }
+              height: { type: integer }
+              mediaType: { type: string }
+    CategorySummary:
+      type: object
+      required: [id, slug, nameFa, productCount]
+      properties:
+        id: { type: string, format: uuid }
+        slug: { type: string }
+        nameFa: { type: string }
+        descriptionFa: { type: string }
+        productCount: { type: integer, minimum: 1 }
+    FilterDefinition:
+      type: object
+      required: [key, labelFa, type, options]
+      properties:
+        key: { type: string }
+        labelFa: { type: string }
+        type: { type: string, enum: [number, boolean, choice] }
+        unitFa: { type: string }
+        options: { type: array, items: { type: string } }
+    ProductSummary:
+      type: object
+      required: [id, slug, nameFa, category, shortDescriptionFa]
+      properties:
+        id: { type: string, format: uuid }
+        slug: { type: string }
+        nameFa: { type: string }
+        category: { $ref: '#/components/schemas/CategorySummary' }
+        shortDescriptionFa: { type: string }
+        primaryImage: { $ref: '#/components/schemas/Image' }
+    PagedProducts:
+      type: object
+      required: [items, page, pageSize, total]
+      properties:
+        items: { type: array, items: { $ref: '#/components/schemas/ProductSummary' } }
+        page: { type: integer }
+        pageSize: { type: integer }
+        total: { type: integer }
+    ProductDetail:
+      allOf:
+        - $ref: '#/components/schemas/ProductSummary'
+        - type: object
+          required: [descriptionFa, features, specifications, images, contact]
+          properties:
+            descriptionFa: { type: string }
+            technicalNotesFa: { type: string }
+            features: { type: array, items: { type: string } }
+            specifications: { type: array, items: { $ref: '#/components/schemas/SpecificationDisplay' } }
+            images: { type: array, items: { $ref: '#/components/schemas/Image' } }
+            contact: { $ref: '#/components/schemas/ContactLinks' }
+    SpecificationDisplay:
+      type: object
+      required: [key, labelFa, displayValueFa]
+      properties:
+        key: { type: string }
+        labelFa: { type: string }
+        displayValueFa: { type: string }
+        unitFa: { type: string }
+    ContactLinks:
+      type: object
+      required: [phone, whatsapp, email]
+      properties:
+        phone: { type: string, format: uri }
+        whatsapp: { type: string, format: uri }
+        email: { type: string, format: uri }
+    PublicSite:
+      type: object
+      required: [businessNameFa, representativeStatementFa, contacts, content]
+      properties:
+        businessNameFa: { type: string }
+        representativeStatementFa: { type: string }
+        contacts: { $ref: '#/components/schemas/ContactLinks' }
+        content: { type: array, items: { $ref: '#/components/schemas/ContentSlot' } }
+    ContentSlot:
+      type: object
+      required: [slotKey, titleFa, bodyFa]
+      properties:
+        slotKey: { type: string }
+        titleFa: { type: string }
+        bodyFa: { type: string }
+        callToActionLabelFa: { type: string }
+        callToActionTarget: { type: string, format: uri-reference }
+    LoginRequest:
+      type: object
+      additionalProperties: false
+      required: [email, password]
+      properties:
+        email: { type: string, format: email, maxLength: 320 }
+        password: { type: string, minLength: 1, maxLength: 1024 }
+    Session:
+      type: object
+      required: [administratorId, displayName, isOwner, csrfToken]
+      properties:
+        administratorId: { type: string, format: uuid }
+        displayName: { type: string }
+        isOwner: { type: boolean }
+        csrfToken: { type: string }
+    AdministratorAccountCreate:
+      type: object
+      additionalProperties: false
+      required: [displayName, email, temporaryPassword]
+      properties:
+        displayName: { type: string, minLength: 1, maxLength: 200 }
+        email: { type: string, format: email, maxLength: 320 }
+        temporaryPassword: { type: string, minLength: 12, maxLength: 1024 }
+    MazinoorImportRequest:
+      type: object
+      additionalProperties: false
+      required: [mode]
+      properties:
+        mode: { type: string, enum: [dryRun, commit] }
+        categoryUrls:
+          description: Optional official-site scope; every URL must match an allowed Mazinoor origin.
+          type: array
+          maxItems: 100
+          items: { type: string, format: uri }
+    ImportRun:
+      type: object
+      required: [id, mode, status, sourceBaseUrl, requestedBy, createdAt, summary]
+      properties:
+        id: { type: string, format: uuid }
+        mode: { type: string, enum: [dryRun, commit] }
+        status: { type: string, enum: [queued, running, completed, completedWithWarnings, failed, cancelled] }
+        sourceBaseUrl: { type: string, format: uri }
+        extractorVersion: { type: string }
+        requestedBy: { type: string, format: uuid }
+        createdAt: { type: string, format: date-time }
+        startedAt: { type: string, format: date-time }
+        completedAt: { type: string, format: date-time }
+        summary:
+          type: object
+          additionalProperties: { type: integer, minimum: 0 }
+    ImportItem:
+      type: object
+      required: [canonicalSourceUrl, sourceContentHash, outcome, fetchedAt, messages]
+      properties:
+        canonicalSourceUrl: { type: string, format: uri }
+        mazinoorProductCode: { type: string }
+        sourceContentHash: { type: string }
+        outcome: { type: string, enum: [new, unchanged, updated, skipped, invalid, failed] }
+        productId: { type: string, format: uuid }
+        fetchedAt: { type: string, format: date-time }
+        messages: { type: array, items: { type: string } }
+    SpecificationValueWrite:
+      type: object
+      required: [definitionId]
+      properties:
+        definitionId: { type: string, format: uuid }
+        textValue: { type: string }
+        numericValue: { type: number }
+        booleanValue: { type: boolean }
+        choiceId: { type: string, format: uuid }
+    ProductWrite:
+      type: object
+      additionalProperties: false
+      required: [categoryId, slug, nameFa, shortDescriptionFa, descriptionFa, features, specifications]
+      properties:
+        categoryId: { type: string, format: uuid }
+        slug: { type: string, minLength: 1, maxLength: 160 }
+        nameFa: { type: string, minLength: 1, maxLength: 300 }
+        shortDescriptionFa: { type: string, minLength: 1, maxLength: 500 }
+        descriptionFa: { type: string, minLength: 1, maxLength: 20000 }
+        technicalNotesFa: { type: string, maxLength: 20000 }
+        displayOrder: { type: integer, minimum: 0 }
+        features: { type: array, items: { type: string, maxLength: 500 }, maxItems: 100 }
+        specifications: { type: array, items: { $ref: '#/components/schemas/SpecificationValueWrite' }, maxItems: 100 }
+    AdminProduct:
+      allOf:
+        - $ref: '#/components/schemas/ProductWrite'
+        - type: object
+          required: [id, status, images, concurrencyToken]
+          properties:
+            id: { type: string, format: uuid }
+            status: { $ref: '#/components/schemas/ProductStatus' }
+            images: { type: array, items: { $ref: '#/components/schemas/Image' } }
+            concurrencyToken: { type: string }
+    SpecificationDefinitionWrite:
+      type: object
+      required: [key, labelFa, valueType, isRequired, isFilterable, displayOrder]
+      properties:
+        key: { type: string, maxLength: 100 }
+        labelFa: { type: string, maxLength: 200 }
+        valueType: { type: string, enum: [text, number, boolean, choice] }
+        unitFa: { type: string, maxLength: 50 }
+        isRequired: { type: boolean }
+        isFilterable: { type: boolean }
+        displayOrder: { type: integer, minimum: 0 }
+        choices: { type: array, items: { type: string, maxLength: 200 } }
+    CategoryWrite:
+      type: object
+      required: [slug, nameFa, displayOrder, isVisible, specifications]
+      properties:
+        slug: { type: string, maxLength: 160 }
+        nameFa: { type: string, maxLength: 300 }
+        descriptionFa: { type: string, maxLength: 5000 }
+        displayOrder: { type: integer, minimum: 0 }
+        isVisible: { type: boolean }
+        specifications: { type: array, items: { $ref: '#/components/schemas/SpecificationDefinitionWrite' } }
+    AdminSite:
+      allOf:
+        - $ref: '#/components/schemas/AdminSiteWrite'
+        - type: object
+          required: [concurrencyToken]
+          properties:
+            concurrencyToken: { type: string }
+    AdminSiteWrite:
+      type: object
+      required: [businessNameFa, representativeStatementFa, phone, whatsapp, email, content]
+      properties:
+        businessNameFa: { type: string, maxLength: 300 }
+        representativeStatementFa: { type: string, maxLength: 5000 }
+        phone: { type: string, maxLength: 50 }
+        whatsapp: { type: string, maxLength: 50 }
+        email: { type: string, format: email }
+        addressFa: { type: string, maxLength: 1000 }
+        operatingHoursFa: { type: string, maxLength: 1000 }
+        content: { type: array, items: { $ref: '#/components/schemas/ContentSlot' } }

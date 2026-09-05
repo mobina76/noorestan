@@ -1,0 +1,11 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Noorestan.Api/Noorestan.Api.csproj" />
+    <Project Path="src/Noorestan.MazinoorImport/Noorestan.MazinoorImport.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Noorestan.Api.IntegrationTests/Noorestan.Api.IntegrationTests.csproj" />
+    <Project Path="tests/Noorestan.Api.UnitTests/Noorestan.Api.UnitTests.csproj" />
+    <Project Path="tests/Noorestan.MazinoorImport.Tests/Noorestan.MazinoorImport.Tests.csproj" />
+  </Folder>
+</Solution>
