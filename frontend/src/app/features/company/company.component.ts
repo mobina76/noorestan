@@ -1,3 +1,47 @@
-import { ChangeDetectionStrategy, Component } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
 import { RouterLink } from '@angular/router';
-@Component({selector:'app-company',imports:[RouterLink],changeDetection:ChangeDetectionStrategy.OnPush,template:`<header><span>درباره نورستان</span><h1>میان فناوری نور<br>و کیفیت معماری</h1><p>نورستان نماینده فروش محصولات مازی‌نور و همراه حرفه‌ای پروژه‌هایی است که روشنایی را جدی می‌گیرند.</p></header><section><div class="visual"><i></i><b>LIGHT<br>MATTERS</b></div><article><span>نگاه ما</span><h2>انتخاب روشن،<br>نتیجه ماندگار</h2><p>از تحلیل نیاز فضا تا بررسی ویژگی‌های فنی، هدف ما ساده‌کردن یک تصمیم تخصصی است. محصولات را دقیق و شفاف معرفی می‌کنیم تا معمار، طراح و کارفرما با اطمینان انتخاب کند.</p><p>قیمت و موجودی همواره از مسیر تماس مستقیم با نورستان تأیید می‌شود؛ چون هر پروژه، نیاز و زمان‌بندی ویژه خود را دارد.</p><a routerLink="/contact">گفت‌وگو با نورستان ←</a></article></section>`,styles:[`header{max-width:80rem;margin:auto;padding:clamp(5rem,10vw,9rem) clamp(1rem,4vw,2.5rem)}header span,article>span{color:var(--color-primary);font-size:.75rem}h1{margin:.8rem 0;font-size:clamp(3.3rem,7vw,6.5rem);line-height:1.08;letter-spacing:-.07em}header p,article p{max-width:42rem;color:var(--color-text-muted)}section{display:grid;grid-template-columns:1fr 1fr;gap:clamp(3rem,8vw,8rem);align-items:center;max-width:80rem;margin:auto;padding:0 clamp(1rem,4vw,2.5rem) var(--space-section)}.visual{position:relative;min-height:35rem;overflow:hidden;border:1px solid var(--color-border);border-radius:12rem 12rem 1rem 1rem;background:linear-gradient(140deg,#07101a,#162c3e 52%,#020509)}.visual i{position:absolute;width:30rem;height:3rem;inset:35% -20% auto auto;transform:rotate(-48deg);background:linear-gradient(90deg,transparent,rgb(189 233 255/85%),transparent);filter:blur(5px);box-shadow:0 0 5rem var(--color-primary)}.visual b{position:absolute;inset:auto auto 2rem 2rem;direction:ltr;color:rgb(255 255 255/40%);font:600 .75rem/1.5 monospace;letter-spacing:.35em}h2{font-size:clamp(2.5rem,5vw,4.5rem);line-height:1.15;letter-spacing:-.06em}article a{display:inline-block;margin-block-start:1rem;color:var(--color-primary);text-decoration:none}@media(max-width:48rem){section{grid-template-columns:1fr}.visual{min-height:27rem}}`]}) export class CompanyComponent{}
+import { SiteStore } from '../../core/site/site.store';
+
+@Component({
+  selector: 'app-company',
+  imports: [RouterLink],
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  template: `
+<header><span>درباره ما</span><h1>{{ site.site().businessNameFa }}</h1><p>{{ site.site().representativeStatementFa }}</p></header>
+<section>
+  <article>
+    <span>نگاه ما</span>
+    <h2>انتخاب روشن، نتیجه ماندگار</h2>
+    @if (intro(); as body) {
+      <p>{{ body }}</p>
+    } @else {
+      <p>از تحلیل نیاز فضا تا بررسی ویژگی‌های فنی محصولات روشنایی مازی‌نور، هدف ما ساده‌کردن یک تصمیم فنی است.</p>
+    }
+    <p>قیمت و موجودی همواره از مسیر تماس مستقیم تأیید می‌شود؛ چون هر پروژه نیاز و زمان‌بندی ویژه خود را دارد.</p>
+    @if (site.site().addressFa) { <p class="address"><b>نشانی:</b> {{ site.site().addressFa }}</p> }
+    <a routerLink="/contact">گفت‌وگو با ما ←</a>
+  </article>
+</section>
+`,
+  styles: [`
+header{max-width:78rem;margin:auto;padding:clamp(2rem,4vw,3.5rem) clamp(1rem,4vw,2.5rem) 1.5rem}
+header span{color:var(--color-primary);font-size:.75rem}
+h1{margin:.5rem 0;font-size:clamp(1.8rem,3.6vw,2.6rem);line-height:1.2;letter-spacing:-.02em}
+header p{max-width:38rem;color:var(--color-text-muted)}
+section{max-width:78rem;margin:auto;padding:0 clamp(1rem,4vw,2.5rem) var(--space-section)}
+article{max-width:42rem}
+article>span{color:var(--color-primary);font-size:.75rem}
+h2{font-size:clamp(1.4rem,2.6vw,1.9rem);line-height:1.25;letter-spacing:-.015em;margin:.4rem 0 1rem}
+article p{color:var(--color-text-muted);line-height:1.85}
+.address{color:var(--color-text)}
+article a{display:inline-block;margin-block-start:1rem;color:var(--color-primary);text-decoration:none}
+`],
+})
+export class CompanyComponent {
+  protected readonly site = inject(SiteStore);
+  protected readonly intro = computed(() => this.site.slot('company.intro')?.bodyFa);
+
+  constructor() {
+    this.site.load().subscribe();
+  }
+}

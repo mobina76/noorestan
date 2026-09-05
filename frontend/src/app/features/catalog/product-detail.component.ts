@@ -1,9 +1,160 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
-import { products } from '../../core/catalog-data';
+import { PublicApiService } from '../../core/api/public-api.service';
+import { PublicProductDetail, PublicProductSummary } from '../../core/api/contracts';
+import { SiteStore } from '../../core/site/site.store';
 import { ProductCardComponent } from '../../shared/product-card.component';
 
-@Component({selector:'app-product-detail',imports:[RouterLink,ProductCardComponent],changeDetection:ChangeDetectionStrategy.OnPush,template:`
-@if(product();as item){<div class="crumb"><a routerLink="/products">محصولات</a><span>/</span><span>{{item.category}}</span><span>/</span><b>{{item.name}}</b></div><section class="product"><div class="gallery"><div class="main-visual" [style.--accent]="item.accent"><span class="beam"></span><span class="fixture"></span><small>{{activeImage()+1}} / 03</small></div><div class="thumbs">@for(i of [0,1,2];track i){<button type="button" [class.active]="activeImage()===i" (click)="activeImage.set(i)" [attr.aria-label]="'نمایش تصویر '+(i+1)"><i [style.--accent]="item.accent"></i></button>}</div></div><div class="info"><span class="category">{{item.category}}</span><h1>{{item.name}}</h1><p class="code">{{item.code}}</p><p class="lead">{{item.description}}</p><div class="actions"><a [href]="whatsapp()" class="primary">گفت‌وگو در واتساپ</a><a href="tel:+982100000000">تماس تلفنی</a></div><p class="notice">قیمت و موجودی محصولات به‌روز استعلام می‌شود. برای سفارش با نماینده تماس بگیرید.</p><div class="features">@for(feature of item.features;track feature){<span><i>✓</i>{{feature}}</span>}</div></div></section><section class="specs"><div><span>اطلاعات فنی</span><h2>مشخصات محصول</h2></div><dl>@for(spec of item.specifications;track spec[0]){<div><dt>{{spec[0]}}</dt><dd>{{spec[1]}}</dd></div>}</dl></section><section class="related"><div><span>پیشنهادهای مرتبط</span><h2>محصولات دیگر</h2></div><div>@for(related of relatedProducts();track related.slug){<app-product-card [product]="related"/>}</div></section>}@else{<section class="missing"><h1>محصول پیدا نشد</h1><a routerLink="/products">بازگشت به محصولات</a></section>}
-`,styles:[`.crumb{display:flex;gap:.7rem;max-width:80rem;margin:auto;padding:2rem clamp(1rem,4vw,2.5rem);color:var(--color-text-muted);font-size:.72rem}.crumb a{color:var(--color-primary);text-decoration:none}.product{display:grid;grid-template-columns:1.15fr .85fr;gap:clamp(2rem,6vw,6rem);max-width:80rem;margin:auto;padding:1rem clamp(1rem,4vw,2.5rem) var(--space-section)}.main-visual{position:relative;display:grid;place-items:center;min-height:38rem;overflow:hidden;border:1px solid var(--color-border);border-radius:var(--radius-xl);background:radial-gradient(circle,color-mix(in srgb,var(--accent) 25%,transparent),transparent 27%),linear-gradient(145deg,#152535,#04070c);box-shadow:var(--shadow-surface),0 0 50px var(--color-glow)}.beam{position:absolute;width:24rem;height:24rem;border-radius:50%;background:radial-gradient(circle,color-mix(in srgb,var(--accent) 18%,transparent),transparent 65%)}.fixture{z-index:2;width:13rem;height:4rem;border:1px solid var(--accent);border-radius:50%;background:linear-gradient(#2e414f,#080c10);box-shadow:inset 0 -1rem 1.5rem var(--accent),0 2rem 5rem color-mix(in srgb,var(--accent) 30%,transparent);transform:perspective(30rem) rotateX(65deg)}.main-visual small{position:absolute;inset:auto auto 1.5rem 1.5rem;direction:ltr;color:var(--color-text-muted)}.thumbs{display:flex;gap:.7rem;margin-block-start:.8rem}.thumbs button{width:5rem;height:4rem;border:1px solid var(--color-border);border-radius:.6rem;background:var(--color-surface)}.thumbs button.active{border-color:var(--color-primary)}.thumbs i{display:block;width:2.5rem;height:.7rem;margin:auto;border-radius:50%;background:var(--accent);box-shadow:0 0 1rem var(--accent)}.info{align-self:center}.category{color:var(--color-primary);font-size:.78rem}.info h1{margin:.8rem 0 0;font-size:clamp(2.6rem,5vw,5rem);line-height:1.1;letter-spacing:-.07em}.code{direction:ltr;text-align:right;color:var(--color-text-muted);font:500 .75rem monospace}.lead{margin-block:2rem;color:var(--color-text-muted);font-size:1.05rem}.actions{display:flex;flex-wrap:wrap;gap:.7rem}.actions a{padding:.85rem 1.2rem;border:1px solid var(--color-border);border-radius:999px;color:var(--color-text);text-decoration:none}.actions .primary{border-color:var(--color-primary);background:var(--color-primary);color:var(--color-primary-contrast);box-shadow:var(--shadow-glow)}.notice{padding:1rem;border-inline-start:2px solid var(--color-primary);background:rgb(139 212 255/5%);color:var(--color-text-muted);font-size:.76rem}.features{display:grid;grid-template-columns:repeat(2,1fr);gap:.8rem;margin-block-start:2rem}.features span{color:var(--color-text-muted);font-size:.8rem}.features i{margin-inline-end:.5rem;color:var(--color-primary);font-style:normal}.specs{display:grid;grid-template-columns:.65fr 1fr;gap:4rem;padding:var(--space-section) max(clamp(1rem,8vw,8rem),calc((100vw - 80rem)/2));background:var(--color-bg-elevated)}.specs span,.related span{color:var(--color-primary);font-size:.72rem}.specs h2,.related h2{margin:.5rem 0;font-size:clamp(2rem,4vw,3.5rem)}dl{margin:0}dl div{display:flex;justify-content:space-between;gap:2rem;padding:1rem;border-block-start:1px solid var(--color-border)}dt{color:var(--color-text-muted)}dd{margin:0}.related{max-width:80rem;margin:auto;padding:var(--space-section) clamp(1rem,4vw,2.5rem)}.related>div:last-child{display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;margin-block-start:2rem}.missing{min-height:60vh;padding:8rem 2rem;text-align:center}.missing a{color:var(--color-primary)}@media(max-width:55rem){.product,.specs{grid-template-columns:1fr}.main-visual{min-height:28rem}.related>div:last-child{grid-template-columns:1fr 1fr}}@media(max-width:38rem){.main-visual{min-height:23rem}.features,.related>div:last-child{grid-template-columns:1fr}.specs{gap:1rem}}`]})
-export class ProductDetailComponent { private readonly route=inject(ActivatedRoute);protected readonly activeImage=signal(0);protected readonly product=computed(()=>products.find(p=>p.slug===this.route.snapshot.paramMap.get('slug')));protected readonly relatedProducts=computed(()=>products.filter(p=>p.slug!==this.product()?.slug).slice(0,3));protected readonly whatsapp=computed(()=>`https://wa.me/982100000000?text=${encodeURIComponent(`سلام، درباره ${this.product()?.name??''} با کد ${this.product()?.code??''} اطلاعات می‌خواهم.`)}`)}
+@Component({
+  selector: 'app-product-detail',
+  imports: [RouterLink, ProductCardComponent],
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  template: `
+@if (loading()) {
+  <section class="state"><p>در حال بارگذاری…</p></section>
+} @else if (product(); as item) {
+  <div class="crumb"><a routerLink="/products">محصولات</a><span>/</span><span>{{ item.category.nameFa }}</span><span>/</span><b>{{ item.nameFa }}</b></div>
+  <section class="product">
+    <div class="gallery">
+      <div class="main-visual">
+        @if (activeImage(); as img) {
+          <img [src]="largestVariant(img)?.url" [alt]="img.altTextFa" width="720" height="600">
+        } @else {
+          <span class="placeholder">تصویری ثبت نشده است</span>
+        }
+      </div>
+      @if (item.images.length > 1) {
+        <div class="thumbs">
+          @for (img of item.images; track img.id) {
+            <button type="button" [class.active]="activeImage() === img" (click)="activeImage.set(img)" [attr.aria-label]="img.altTextFa || 'تصویر محصول'">
+              <img [src]="smallestVariant(img)?.url" [alt]="''" width="80" height="64">
+            </button>
+          }
+        </div>
+      }
+    </div>
+    <div class="info">
+      <span class="category">{{ item.category.nameFa }}</span>
+      <h1>{{ item.nameFa }}</h1>
+      @if (item.mazinoorProductCode) { <p class="code">{{ item.mazinoorProductCode }}</p> }
+      <p class="lead">{{ item.shortDescriptionFa }}</p>
+      <div class="actions">
+        @if (site.hasWhatsApp()) { <a [href]="whatsapp()" class="primary">گفت‌وگو در واتساپ</a> }
+        @if (site.hasPhone()) { <a [href]="site.telLink()">تماس تلفنی</a> }
+        @if (site.hasEmail()) { <a [href]="mail()">ارسال ایمیل</a> }
+      </div>
+      <p class="notice">قیمت و موجودی این محصول به‌روز استعلام می‌شود. برای سفارش با نورستان تماس بگیرید.</p>
+      @if (item.features.length) {
+        <div class="features">@for (feature of item.features; track feature) { <span><i>✓</i>{{ feature }}</span> }</div>
+      }
+    </div>
+  </section>
+
+  @if (item.descriptionFa) {
+    <section class="description"><h2>معرفی محصول</h2><p>{{ item.descriptionFa }}</p>@if(item.technicalNotesFa){<p class="notes">{{ item.technicalNotesFa }}</p>}</section>
+  }
+
+  @if (item.specifications.length) {
+    <section class="specs">
+      <div><span>اطلاعات فنی</span><h2>مشخصات محصول</h2></div>
+      <dl>@for (spec of item.specifications; track spec.key) { <div><dt>{{ spec.labelFa }}</dt><dd>{{ spec.displayValueFa }}</dd></div> }</dl>
+    </section>
+  }
+
+  @if (related().length) {
+    <section class="related">
+      <div><span>پیشنهادهای مرتبط</span><h2>محصولات دیگر این دسته</h2></div>
+      <div>@for (relatedProduct of related(); track relatedProduct.id) { <app-product-card [product]="relatedProduct" /> }</div>
+    </section>
+  }
+} @else {
+  <section class="missing"><h1>محصول پیدا نشد</h1><p>این محصول منتشر نشده یا آدرس آن اشتباه است.</p><a routerLink="/products">بازگشت به محصولات</a></section>
+}
+`,
+  styles: [`
+.state{min-height:40vh;display:grid;place-items:center;color:var(--color-text-muted)}
+.crumb{display:flex;gap:.6rem;max-width:78rem;margin:auto;padding:1.4rem clamp(1rem,4vw,2.5rem);color:var(--color-text-muted);font-size:.72rem}
+.crumb a{color:var(--color-primary);text-decoration:none}
+.product{display:grid;grid-template-columns:1.1fr .9fr;gap:clamp(1.5rem,4vw,3.5rem);max-width:78rem;margin:auto;padding:0 clamp(1rem,4vw,2.5rem) var(--space-section)}
+.main-visual{position:relative;display:grid;place-items:center;aspect-ratio:6/5;overflow:hidden;border:1px solid var(--color-border);border-radius:var(--radius-lg);background:var(--color-bg-elevated)}
+.main-visual img{width:100%;height:100%;object-fit:cover}
+.placeholder{color:var(--color-text-muted);font-size:.85rem}
+.thumbs{display:flex;gap:.6rem;margin-block-start:.7rem;flex-wrap:wrap}
+.thumbs button{padding:0;width:5rem;height:4rem;border:1px solid var(--color-border);border-radius:.5rem;overflow:hidden;background:var(--color-surface);cursor:pointer}
+.thumbs button img{width:100%;height:100%;object-fit:cover}
+.thumbs button.active{border-color:var(--color-primary)}
+.info{align-self:center}
+.category{color:var(--color-primary);font-size:.78rem}
+.info h1{margin:.5rem 0 0;font-size:clamp(1.7rem,3.2vw,2.5rem);line-height:1.2;letter-spacing:-.02em}
+.code{direction:ltr;text-align:right;color:var(--color-text-muted);font:500 .75rem monospace;margin:.3rem 0 0}
+.lead{margin-block:1rem;color:var(--color-text-muted);font-size:.95rem}
+.actions{display:flex;flex-wrap:wrap;gap:.6rem}
+.actions a{padding:.75rem 1.1rem;border:1px solid var(--color-border);border-radius:999px;color:var(--color-text);text-decoration:none;font-size:.85rem}
+.actions .primary{border-color:var(--color-primary);background:var(--color-primary);color:var(--color-primary-contrast)}
+.notice{margin-block-start:1.2rem;padding:.8rem 1rem;border-inline-start:2px solid var(--color-primary);background:rgb(139 212 255/5%);color:var(--color-text-muted);font-size:.76rem}
+.features{display:grid;grid-template-columns:repeat(2,1fr);gap:.6rem;margin-block-start:1.4rem}
+.features span{color:var(--color-text-muted);font-size:.8rem}
+.features i{margin-inline-end:.4rem;color:var(--color-primary);font-style:normal}
+.description{max-width:78rem;margin:auto;padding:0 clamp(1rem,4vw,2.5rem) var(--space-section)}
+.description h2{font-size:1.1rem;margin-block-end:.6rem}
+.description p{max-width:52rem;color:var(--color-text-muted);line-height:1.9;font-size:.92rem}
+.description .notes{color:var(--color-text-muted);font-size:.82rem;border-inline-start:2px solid var(--color-border);padding-inline-start:.8rem}
+.specs{display:grid;grid-template-columns:.5fr 1fr;gap:2rem;padding:var(--space-section) max(clamp(1rem,8vw,8rem),calc((100vw - 78rem)/2));background:var(--color-bg-elevated)}
+.specs span,.related span{color:var(--color-primary);font-size:.72rem}
+.specs h2,.related h2{margin:.4rem 0;font-size:1.4rem}
+dl{margin:0}
+dl div{display:flex;justify-content:space-between;gap:2rem;padding:.7rem 0;border-block-start:1px solid var(--color-border)}
+dt{color:var(--color-text-muted)}
+dd{margin:0;text-align:end}
+.related{max-width:78rem;margin:auto;padding:var(--space-section) clamp(1rem,4vw,2.5rem)}
+.related>div:last-child{display:grid;grid-template-columns:repeat(4,1fr);gap:1rem;margin-block-start:1.2rem}
+.missing{min-height:50vh;padding:5rem 2rem;text-align:center}
+.missing a{color:var(--color-primary)}
+@media(max-width:60rem){.product,.specs{grid-template-columns:1fr}.related>div:last-child{grid-template-columns:1fr 1fr}}
+@media(max-width:38rem){.features,.related>div:last-child{grid-template-columns:1fr}.specs{gap:1rem}}
+`],
+})
+export class ProductDetailComponent {
+  private readonly api = inject(PublicApiService);
+  private readonly route = inject(ActivatedRoute);
+  protected readonly site = inject(SiteStore);
+
+  protected readonly loading = signal(true);
+  protected readonly product = signal<PublicProductDetail | null>(null);
+  protected readonly activeImage = signal<PublicProductDetail['images'][number] | null>(null);
+  protected readonly related = signal<ReadonlyArray<PublicProductSummary>>([]);
+
+  protected readonly whatsapp = computed(() => {
+    const item = this.product();
+    return this.site.whatsAppLink(item ? `سلام، درباره ${item.nameFa}${item.mazinoorProductCode ? ' با کد ' + item.mazinoorProductCode : ''} اطلاعات می‌خواهم.` : 'سلام، می‌خواستم درباره یک محصول اطلاعات بگیرم.');
+  });
+  protected readonly mail = computed(() => this.site.mailLink(this.product() ? `استعلام محصول ${this.product()!.nameFa}` : 'استعلام محصول'));
+
+  constructor() {
+    this.route.paramMap.subscribe((params) => {
+      const slug = params.get('slug');
+      if (!slug) return;
+      this.loading.set(true);
+      this.product.set(null);
+      this.api.product(slug).subscribe({
+        next: (product) => {
+          this.product.set(product);
+          this.activeImage.set(product.images[0] ?? null);
+          this.loading.set(false);
+          this.api.products({ category: product.category.slug, pageSize: 5 }).subscribe((page) => {
+            this.related.set(page.items.filter((p) => p.slug !== slug).slice(0, 4));
+          });
+        },
+        error: () => { this.loading.set(false); this.product.set(null); },
+      });
+    });
+  }
+
+  protected largestVariant(image: PublicProductDetail['images'][number]) {
+    return [...image.variants].sort((a, b) => b.width - a.width)[0];
+  }
+
+  protected smallestVariant(image: PublicProductDetail['images'][number]) {
+    return [...image.variants].sort((a, b) => a.width - b.width)[0];
+  }
+}
