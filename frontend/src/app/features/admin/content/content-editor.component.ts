@@ -1,8 +1,10 @@
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { AdminApiService } from '../../../core/api/admin-api.service';
-import { BusinessProfile, ManagedContentEntity } from '../../../core/api/contracts';
+import { BusinessProfile, ManagedContentEntity, PhoneNumber } from '../../../core/api/contracts';
 import { readApiError } from '../../../core/http/api-error';
+
+type ProfileForm = Omit<BusinessProfile, 'phones'> & { phones: PhoneNumber[]; version: number };
 
 const SLOTS: ReadonlyArray<{ readonly key: string; readonly label: string }> = [
   { key: 'home.hero', label: 'صفحه اصلی — بخش معرفی (هیرو)' },
@@ -49,13 +51,6 @@ interface SlotForm {
               name="representativeStatementFa"
           /></label>
           <label
-            >تلفن ثابت<input
-              [(ngModel)]="profileForm.phone"
-              name="phone"
-              class="ltr"
-              placeholder="مثلاً 02100000000"
-          /></label>
-          <label
             >واتساپ<input
               [(ngModel)]="profileForm.whatsApp"
               name="whatsApp"
@@ -66,6 +61,32 @@ interface SlotForm {
           <label
             >ساعات کاری<input [(ngModel)]="profileForm.operatingHoursFa" name="operatingHoursFa"
           /></label>
+        </div>
+        <div class="phone-list">
+          <span class="field-label">تلفن‌ها</span>
+          @for (phone of profileForm.phones; track $index; let i = $index) {
+            <div class="phone-row">
+              <input
+                [(ngModel)]="phone.number"
+                [name]="'phone-number-' + i"
+                class="ltr"
+                placeholder="مثلاً 021-33119296"
+              />
+              <label class="checkbox inline"
+                ><input type="checkbox" [(ngModel)]="phone.isAlsoFax" [name]="'phone-fax-' + i" />
+                هم‌زمان فکس</label
+              >
+              <button
+                type="button"
+                class="remove-phone"
+                (click)="removePhone(i)"
+                [attr.aria-label]="'حذف شماره ' + (i + 1)"
+              >
+                ✕
+              </button>
+            </div>
+          }
+          <button type="button" class="add-phone" (click)="addPhone()">+ افزودن شماره تلفن</button>
         </div>
         <label
           >نشانی<textarea rows="2" [(ngModel)]="profileForm.addressFa" name="addressFa"></textarea>
@@ -179,6 +200,48 @@ interface SlotForm {
         gap: 0.5rem;
         align-self: end;
       }
+      label.checkbox.inline {
+        flex: none;
+        white-space: nowrap;
+      }
+      .field-label {
+        display: block;
+        margin-block-end: 0.4rem;
+        color: var(--color-text-muted);
+        font-size: 0.78rem;
+      }
+      .phone-list {
+        margin-block-end: 0.9rem;
+      }
+      .phone-row {
+        display: flex;
+        align-items: center;
+        gap: 0.7rem;
+        margin-block-end: 0.5rem;
+      }
+      .phone-row input {
+        flex: 1 1 auto;
+        margin-block-start: 0;
+      }
+      .remove-phone {
+        flex: none;
+        width: 2rem;
+        height: 2rem;
+        border: 1px solid var(--color-border);
+        border-radius: 0.4rem;
+        background: transparent;
+        color: var(--color-danger);
+        cursor: pointer;
+      }
+      .add-phone {
+        padding: 0.5rem 0.9rem;
+        border: 1px dashed var(--color-border);
+        border-radius: 0.5rem;
+        background: transparent;
+        color: var(--color-primary);
+        font-size: 0.8rem;
+        cursor: pointer;
+      }
       input,
       textarea {
         display: block;
@@ -251,11 +314,11 @@ interface SlotForm {
 export class ContentEditorComponent {
   private readonly api = inject(AdminApiService);
 
-  protected profileForm: BusinessProfile & { version: number } = {
+  protected profileForm: ProfileForm = {
     businessNameFa: '',
     representativeStatementFa: '',
     addressFa: '',
-    phone: '',
+    phones: [],
     whatsApp: '',
     email: '',
     operatingHoursFa: '',
@@ -288,6 +351,7 @@ export class ContentEditorComponent {
         ...profile,
         addressFa: profile.addressFa ?? '',
         operatingHoursFa: profile.operatingHoursFa ?? '',
+        phones: profile.phones.map((p) => ({ ...p })),
         version: profile.version ?? 0,
       };
     });
@@ -326,6 +390,14 @@ export class ContentEditorComponent {
     return this.slotForms().find((s) => s.key === this.activeSlot());
   }
 
+  protected addPhone(): void {
+    this.profileForm.phones.push({ number: '', isAlsoFax: false });
+  }
+
+  protected removePhone(index: number): void {
+    this.profileForm.phones.splice(index, 1);
+  }
+
   protected saveProfile(event: Event): void {
     event.preventDefault();
     this.savingProfile.set(true);
@@ -334,6 +406,9 @@ export class ContentEditorComponent {
       ...this.profileForm,
       addressFa: this.profileForm.addressFa?.trim() || null,
       operatingHoursFa: this.profileForm.operatingHoursFa?.trim() || null,
+      phones: this.profileForm.phones
+        .map((p) => ({ number: p.number.trim(), isAlsoFax: p.isAlsoFax }))
+        .filter((p) => p.number.length > 0),
     };
     this.api.updateBusinessProfile(body, this.profileForm.version).subscribe({
       next: (saved) => {
@@ -344,6 +419,7 @@ export class ContentEditorComponent {
           ...saved,
           addressFa: saved.addressFa ?? '',
           operatingHoursFa: saved.operatingHoursFa ?? '',
+          phones: saved.phones.map((p) => ({ ...p })),
           version: saved.version ?? 0,
         };
       },

@@ -1,12 +1,12 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
 import { shareReplay, tap } from 'rxjs';
 import { PublicApiService } from '../api/public-api.service';
-import { ManagedContentSlot, PublicSite } from '../api/contracts';
+import { ManagedContentSlot, PhoneNumber, PublicSite } from '../api/contracts';
 
 const FALLBACK: PublicSite = {
   businessNameFa: 'نورستان',
   representativeStatementFa: 'نماینده فروش محصولات مازی‌نور',
-  phone: '',
+  phones: [],
   whatsApp: '',
   email: '',
   addressFa: null,
@@ -17,7 +17,13 @@ const FALLBACK: PublicSite = {
 export class SiteStore {
   private readonly api = inject(PublicApiService);
   readonly site = signal<PublicSite>(FALLBACK);
-  readonly hasPhone = computed(() => this.site().phone.trim().length > 0);
+  readonly phones = computed(() => this.site().phones);
+  readonly hasPhones = computed(() => this.site().phones.length > 0);
+  // The number used for a single quick "call us" action (e.g. a product-detail CTA): the first
+  // line that isn't also a fax number, falling back to the first line if every one doubles as fax.
+  readonly primaryPhone = computed<PhoneNumber | undefined>(
+    () => this.site().phones.find((p) => !p.isAlsoFax) ?? this.site().phones[0],
+  );
   readonly hasWhatsApp = computed(() => this.site().whatsApp.trim().length > 0);
   readonly hasEmail = computed(() => this.site().email.trim().length > 0);
 
@@ -39,8 +45,8 @@ export class SiteStore {
     return `https://wa.me/${number}?text=${encodeURIComponent(message)}`;
   }
 
-  telLink(): string {
-    return `tel:${this.site().phone.replace(/\s/g, '')}`;
+  telLink(number: string): string {
+    return `tel:${number.replace(/[^\d+]/g, '')}`;
   }
 
   mailLink(subject: string): string {

@@ -92,10 +92,15 @@ export interface ManagedContentSlot {
   readonly callToActionTarget?: string | null;
 }
 
+export interface PhoneNumber {
+  readonly number: string;
+  readonly isAlsoFax: boolean;
+}
+
 export interface PublicSite {
   readonly businessNameFa: string;
   readonly representativeStatementFa: string;
-  readonly phone: string;
+  readonly phones: ReadonlyArray<PhoneNumber>;
   readonly whatsApp: string;
   readonly email: string;
   readonly addressFa?: string | null;
@@ -243,7 +248,7 @@ export interface BusinessProfile {
   readonly businessNameFa: string;
   readonly representativeStatementFa: string;
   readonly addressFa?: string | null;
-  readonly phone: string;
+  readonly phones: ReadonlyArray<PhoneNumber>;
   readonly whatsApp: string;
   readonly email: string;
   readonly operatingHoursFa?: string | null;

@@ -6,7 +6,11 @@ import { PublicProductSummary } from '../core/api/contracts';
   selector: 'app-product-card',
   imports: [RouterLink],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  template: ` <a class="card" [routerLink]="['/products', product().slug]">
+  template: ` <a
+    class="card"
+    [class.compact]="compact()"
+    [routerLink]="['/products', product().slug]"
+  >
     <div class="visual">
       @if (product().primaryImage; as image) {
         <img
@@ -23,11 +27,19 @@ import { PublicProductSummary } from '../core/api/contracts';
       @if (product().mazinoorProductCode) {
         <small>{{ product().mazinoorProductCode }}</small>
       }
+      @if (compact()) {
+        <span class="arrow-badge" aria-hidden="true">←</span>
+      }
     </div>
     <div class="body">
-      <span>{{ product().category }}</span>
-      <h3>{{ product().nameFa }}</h3>
-      <p>{{ product().shortDescriptionFa }}</p>
+      @if (compact()) {
+        <h3>{{ product().nameFa }}</h3>
+        <span class="category-tag">{{ product().category }}</span>
+      } @else {
+        <span>{{ product().category }}</span>
+        <h3>{{ product().nameFa }}</h3>
+        <p>{{ product().shortDescriptionFa }}</p>
+      }
     </div>
   </a>`,
   styles: [
@@ -112,10 +124,37 @@ import { PublicProductSummary } from '../core/api/contracts';
         -webkit-box-orient: vertical;
         overflow: hidden;
       }
+      .arrow-badge {
+        position: absolute;
+        inset-block-end: 0.6rem;
+        inset-inline-end: 0.6rem;
+        display: grid;
+        place-items: center;
+        width: 2.1rem;
+        height: 2.1rem;
+        border-radius: 50%;
+        background: var(--color-primary);
+        color: var(--color-primary-contrast);
+        font-size: 0.85rem;
+        box-shadow: var(--shadow-glow);
+      }
+      .card.compact .body {
+        padding: 0.75rem 0.85rem 0.9rem;
+      }
+      .card.compact h3 {
+        margin: 0 0 0.25rem;
+        font-size: 0.95rem;
+        line-height: 1.35;
+      }
+      .card.compact .category-tag {
+        color: var(--color-text-muted);
+        font-size: 0.72rem;
+      }
     `,
   ],
 })
 export class ProductCardComponent {
   readonly product = input.required<PublicProductSummary>();
   readonly priority = input(false);
+  readonly compact = input(false);
 }

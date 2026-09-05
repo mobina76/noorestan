@@ -18,11 +18,18 @@ import { SiteStore } from '../../core/site/site.store';
         }
       </div>
       <div class="cards">
-        @if (site.hasPhone()) {
-          <a [href]="site.telLink()"
-            ><small>تماس تلفنی</small><b class="ltr">{{ site.site().phone }}</b
-            ><i>←</i></a
-          >
+        @if (site.hasPhones()) {
+          <div class="phone-card">
+            <small>تماس تلفنی</small>
+            @for (phone of site.phones(); track phone.number) {
+              <a [href]="site.telLink(phone.number)" class="ltr phone-number"
+                >{{ phone.number }}
+                @if (phone.isAlsoFax) {
+                  <span class="fax-tag">فکس</span>
+                }
+              </a>
+            }
+          </div>
         }
         @if (site.hasWhatsApp()) {
           <a [href]="site.whatsAppLink('سلام، می‌خواستم درباره محصولات نورستان اطلاعات بگیرم.')"
@@ -35,7 +42,7 @@ import { SiteStore } from '../../core/site/site.store';
             ><i>←</i></a
           >
         }
-        @if (!site.hasPhone() && !site.hasWhatsApp() && !site.hasEmail()) {
+        @if (!site.hasPhones() && !site.hasWhatsApp() && !site.hasEmail()) {
           <p class="muted">اطلاعات تماس به‌زودی از سوی مدیریت نورستان تکمیل می‌شود.</p>
         }
         <article>
@@ -100,6 +107,37 @@ import { SiteStore } from '../../core/site/site.store';
         direction: ltr;
         display: block;
         text-align: start;
+      }
+      .phone-card {
+        padding: 1.1rem;
+        border-block-start: 1px solid var(--color-border);
+      }
+      .phone-card > small {
+        display: block;
+        margin-block-end: 0.3rem;
+        color: var(--color-text-muted);
+        font-size: 0.7rem;
+      }
+      .phone-number {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding-block: 0.25rem;
+        color: var(--color-text);
+        text-decoration: none;
+        font-size: 1.05rem;
+      }
+      .phone-number:hover {
+        color: var(--color-primary);
+      }
+      .fax-tag {
+        direction: rtl;
+        unicode-bidi: isolate;
+        padding: 0.05rem 0.5rem;
+        border-radius: 999px;
+        background: var(--color-surface);
+        color: var(--color-text-muted);
+        font-size: 0.68rem;
       }
       .cards i {
         position: absolute;

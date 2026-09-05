@@ -34,12 +34,37 @@
   margin: auto;
   padding-inline: clamp(1rem, 4vw, 2.5rem);
 }
+.brand-group {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
 .brand {
   display: inline-flex;
   align-items: center;
   gap: 0.8rem;
   color: var(--color-text);
   text-decoration: none;
+}
+.partner-mark {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  padding-inline-start: 1rem;
+  border-inline-start: 1px solid var(--color-border);
+}
+.partner-mark img {
+  display: block;
+  height: 1.4rem;
+  width: auto;
+  opacity: 0.92;
+}
+.partner-mark small {
+  display: block;
+  max-width: 4.5rem;
+  color: var(--color-text-muted);
+  font-size: 0.62rem;
+  line-height: 1.3;
 }
 .brand strong,
 .brand small {
@@ -143,6 +168,13 @@
   direction: ltr;
   text-align: start;
 }
+.phone-line small {
+  margin-inline-start: 0.4rem;
+  color: var(--color-primary);
+  font-size: 0.68rem;
+  direction: rtl;
+  unicode-bidi: isolate;
+}
 .site-footer .address {
   color: var(--color-text-muted);
   font-size: 0.8rem;
@@ -164,6 +196,11 @@
   clip: rect(0, 0, 0, 0);
   white-space: nowrap;
   border: 0;
+}
+@media (max-width: 60rem) {
+  .partner-mark {
+    display: none;
+  }
 }
 @media (max-width: 48rem) {
   .menu-button {

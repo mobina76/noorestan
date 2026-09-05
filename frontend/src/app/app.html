@@ -2,12 +2,18 @@
   <a class="skip-link" href="#main">رفتن به محتوای اصلی</a>
   <header class="site-header">
     <nav class="nav-shell" aria-label="ناوبری اصلی">
-      <a routerLink="/" class="brand" aria-label="نورستان، صفحه اصلی"
-        ><span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i></span
-        ><span
-          ><strong>نورستان</strong><small>{{ site.site().businessNameFa }}</small></span
-        ></a
-      >
+      <div class="brand-group">
+        <a routerLink="/" class="brand" aria-label="نورستان، صفحه اصلی"
+          ><span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i></span
+          ><span
+            ><strong>نورستان</strong><small>{{ site.site().businessNameFa }}</small></span
+          ></a
+        >
+        <div class="partner-mark" aria-label="نماینده رسمی محصولات مازی‌نور">
+          <img src="/brand/mazinoor-logo-white.svg" alt="مازی‌نور" width="70" height="30" />
+          <small>نماینده رسمی</small>
+        </div>
+      </div>
       <button
         class="menu-button"
         type="button"
@@ -48,8 +54,13 @@
     </div>
     <div>
       <h2>ارتباط با نورستان</h2>
-      @if (site.hasPhone()) {
-        <a [href]="site.telLink()" class="ltr">{{ site.site().phone }}</a>
+      @for (phone of site.phones(); track phone.number) {
+        <a [href]="site.telLink(phone.number)" class="ltr phone-line"
+          >{{ phone.number }}
+          @if (phone.isAlsoFax) {
+            <small>(فکس)</small>
+          }
+        </a>
       }
       @if (site.hasEmail()) {
         <a [href]="site.mailLink('استعلام از نورستان')" class="ltr">{{ site.site().email }}</a>

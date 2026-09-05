@@ -57,8 +57,8 @@ import { ProductCardComponent } from '../../shared/product-card.component';
             @if (site.hasWhatsApp()) {
               <a [href]="whatsapp()" class="primary">گفت‌وگو در واتساپ</a>
             }
-            @if (site.hasPhone()) {
-              <a [href]="site.telLink()">تماس تلفنی</a>
+            @if (site.primaryPhone(); as phone) {
+              <a [href]="site.telLink(phone.number)">تماس تلفنی</a>
             }
             @if (site.hasEmail()) {
               <a [href]="mail()">ارسال ایمیل</a>

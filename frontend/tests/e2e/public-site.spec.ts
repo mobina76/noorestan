@@ -4,11 +4,10 @@ import AxeBuilder from '@axe-core/playwright';
 test('homepage presents the real business identity without commerce controls', async ({ page }) => {
   await page.goto('/');
   await expect(page.locator('html')).toHaveAttribute('dir', 'rtl');
-  await expect(page.getByRole('heading', { name: /روشنایی حرفه‌ای/ })).toBeVisible();
+  await expect(page.getByRole('heading', { name: /زبان معماری فضای شماست/ })).toBeVisible();
   await expect(page.getByRole('link', { name: /مشاهده محصولات/ })).toBeVisible();
-  await expect(page.getByText('محصولات شاخص')).toBeVisible();
-  await expect(page.getByText('چرا نورستان؟')).toBeVisible();
-  await expect(page.getByText(/برای پروژه بعدی/)).toBeVisible();
+  await expect(page.getByText('محبوب‌ترین محصولات')).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'در کنار شما، از ایده تا اجرا' })).toBeVisible();
   await expect(page.getByText(/سبد خرید|پرداخت آنلاین|تسویه حساب/)).toHaveCount(0);
   const results = await new AxeBuilder({ page }).analyze();
   expect(results.violations).toEqual([]);
