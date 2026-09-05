@@ -167,9 +167,17 @@ public static class AdminCatalogEndpoints
         if (request.TargetStatus == ProductStatus.Published && (!entity.Images.Any(x => x.IsPrimary && x.Status == ImageProcessingStatus.Ready) || entity.SpecificationValues.Any(x => x.Definition.IsRequired && x.TextValue == null && x.NumericValue == null && x.BooleanValue == null && x.ChoiceId == null))) return Results.ValidationProblem(new Dictionary<string, string[]> { ["publish"] = ["تصویر اصلی آماده و مشخصات الزامی برای انتشار لازم است."] });
         entity.Status = request.TargetStatus; entity.PublishedAt = request.TargetStatus == ProductStatus.Published ? DateTimeOffset.UtcNow : entity.PublishedAt; entity.ArchivedAt = request.TargetStatus == ProductStatus.Archived ? DateTimeOffset.UtcNow : null; await db.SaveChangesAsync(token); return Results.Ok(entity);
     }
-    private static async Task<IResult> DeleteProduct(Guid id, HttpRequest http, AppDbContext db, CancellationToken token)
+    private static async Task<IResult> DeleteProduct(Guid id, HttpRequest http, AppDbContext db, IObjectStorage storage, CancellationToken token)
     {
-        var entity = await db.Products.FindAsync([id], token); if (entity is null) return Results.NotFound(); if (!Matches(http, entity.Version)) return Results.Conflict(); if (entity.Status != ProductStatus.Archived || http.Headers["confirmation"] != "permanently-delete") return Results.BadRequest(new { title = "حذف دائمی فقط پس از بایگانی و تأیید صریح ممکن است." }); db.Products.Remove(entity); await db.SaveChangesAsync(token); return Results.NoContent();
+        var entity = await db.Products.Include(x => x.Images).ThenInclude(x => x.Variants).SingleOrDefaultAsync(x => x.Id == id, token);
+        if (entity is null) return Results.NotFound();
+        if (!Matches(http, entity.Version)) return Results.Conflict();
+        if (entity.Status != ProductStatus.Archived || http.Headers["confirmation"] != "permanently-delete") return Results.BadRequest(new { title = "حذف دائمی فقط پس از بایگانی و تأیید صریح ممکن است." });
+        var objectKeys = entity.Images.SelectMany(i => new[] { i.OriginalObjectKey }.Concat(i.Variants.Select(v => v.ObjectKey))).ToList();
+        db.Products.Remove(entity);
+        await db.SaveChangesAsync(token);
+        foreach (var key in objectKeys) await storage.DeleteAsync(key, token);
+        return Results.NoContent();
     }
     private static async Task<IResult?> ValidateProduct(ProductWrite request, AppDbContext db, CancellationToken token)
     {

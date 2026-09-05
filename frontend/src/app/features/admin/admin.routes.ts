@@ -43,6 +43,13 @@ export const ADMIN_ROUTES: Routes = [
         title: 'محتوای سایت | مدیریت نورستان',
       },
       {
+        path: 'imports',
+        canActivate: [ownerGuard],
+        loadComponent: () =>
+          import('./imports/import-panel.component').then((m) => m.ImportPanelComponent),
+        title: 'دریافت از مازی‌نور | مدیریت نورستان',
+      },
+      {
         path: 'accounts',
         canActivate: [ownerGuard],
         loadComponent: () =>

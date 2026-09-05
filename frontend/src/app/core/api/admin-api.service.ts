@@ -9,6 +9,9 @@ import {
   AdministratorAccountDto,
   BusinessProfile,
   CategoryWrite,
+  ImportItemDto,
+  ImportMode,
+  ImportRunDto,
   ManagedContentEntity,
   ManagedContentWrite,
   Page,
@@ -200,5 +203,20 @@ export class AdminApiService {
   }
   transferOwnership(newOwnerId: string): Observable<void> {
     return this.http.post<void>('/api/v1/owner/transfer', { newOwnerId });
+  }
+
+  // Mazinoor import
+  importRuns(): Observable<ReadonlyArray<ImportRunDto>> {
+    return this.http.get<ReadonlyArray<ImportRunDto>>('/api/v1/owner/imports');
+  }
+  importItems(runId: string): Observable<ReadonlyArray<ImportItemDto>> {
+    return this.http.get<ReadonlyArray<ImportItemDto>>(`/api/v1/owner/imports/${runId}/items`);
+  }
+  startImport(
+    categoryId: string,
+    sourceUrls: ReadonlyArray<string>,
+    mode: ImportMode,
+  ): Observable<ImportRunDto> {
+    return this.http.post<ImportRunDto>('/api/v1/owner/imports', { categoryId, sourceUrls, mode });
   }
 }

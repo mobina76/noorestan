@@ -39,6 +39,7 @@ import { SessionStore } from '../../core/auth/session.store';
           <a routerLink="/admin/categories" routerLinkActive="active">دسته‌بندی‌ها</a>
           <a routerLink="/admin/content" routerLinkActive="active">محتوای سایت</a>
           @if (session()?.isOwner) {
+            <a routerLink="/admin/imports" routerLinkActive="active">دریافت از مازی‌نور</a>
             <a routerLink="/admin/accounts" routerLinkActive="active">حساب‌های مدیریت</a>
           }
           <a routerLink="/" class="back-link">بازگشت به وب‌سایت ↩</a>

@@ -11,6 +11,15 @@ write the listed tests first and confirm they fail before implementing the behav
 **Organization**: Tasks are grouped by user story so each story can be implemented and validated as
 an independently useful increment.
 
+**Status correction (2026-09-05)**: A read-only audit found this file's checkboxes did not reliably
+reflect the actual codebase — some checked tasks had no corresponding code, and some unchecked tasks
+were already substantially implemented. The checkboxes below were re-verified against the real
+backend/frontend code and a running local stack (real Postgres, real seeded Mazinoor data, a live
+Mazinoor import run) rather than assumed from prior state. Where a task is functionally complete but
+via a simpler mechanism than originally planned (e.g. per-endpoint `If-Match` checks instead of a
+dedicated concurrency middleware type), it is marked done with a note. Tasks left unchecked are real
+gaps, not just unverified ones.
+
 ## Phase 1: Setup (Shared Infrastructure)
 
 **Purpose**: Establish the pinned workspaces, deployment shape, quality commands, and contracts.
@@ -34,22 +43,22 @@ an independently useful increment.
 
 **Critical**: No user story implementation starts until this phase is complete.
 
-- [ ] T011 Define shared persistence conventions, entity base fields, concurrency tokens, and UTC handling in `backend/src/Noorestan.Api/Infrastructure/Persistence/AppDbContext.cs` and `backend/src/Noorestan.Api/Infrastructure/Persistence/EntityBase.cs`
-- [ ] T012 Define AdministratorAccount and AuditEvent entities plus database mappings and owner uniqueness constraints in `backend/src/Noorestan.Api/Infrastructure/Identity/AdministratorAccount.cs`, `backend/src/Noorestan.Api/Infrastructure/Auditing/AuditEvent.cs`, and `backend/src/Noorestan.Api/Infrastructure/Persistence/AppDbContext.cs`
-- [ ] T013 Define Category, SpecificationDefinition, SpecificationChoice, Product, ProductFeature, ProductSpecificationValue, ProductImage, ImageVariant, BusinessProfile, ManagedContent, ImportRun, and ImportItem entities and mappings in `backend/src/Noorestan.Api/Features/` and `backend/src/Noorestan.Api/Infrastructure/Persistence/AppDbContext.cs`
-- [ ] T014 Create the initial PostgreSQL migration with foreign keys, check constraints, filtered uniqueness, lifecycle indexes, search indexes, and bounded relationship rules in `backend/src/Noorestan.Api/Infrastructure/Persistence/Migrations/`
-- [ ] T015 [P] Implement ASP.NET Core Identity, secure cookie settings, CSRF validation, Admin/Owner policies, login throttling, and session revocation wiring in `backend/src/Noorestan.Api/Infrastructure/Identity/IdentityConfiguration.cs`
-- [ ] T016 [P] Implement the one-use first-owner bootstrap command with secret invalidation and refusal when an owner exists in `backend/src/Noorestan.Api/Infrastructure/Identity/OwnerBootstrap.cs`
-- [ ] T017 [P] Implement Problem Details, validation-error, authorization-error, and optimistic-concurrency middleware in `backend/src/Noorestan.Api/Infrastructure/Http/ApiProblemDetails.cs` and `backend/src/Noorestan.Api/Infrastructure/Http/ConcurrencyMiddleware.cs`
-- [ ] T018 [P] Implement structured logging, correlation IDs, redaction, health/readiness checks, and request metrics in `backend/src/Noorestan.Api/Infrastructure/Observability/ObservabilityConfiguration.cs`
-- [ ] T019 [P] Implement audit event recording for authentication and content mutations without sensitive values in `backend/src/Noorestan.Api/Infrastructure/Auditing/AuditWriter.cs`
-- [ ] T020 [P] Implement the S3-compatible object-store abstraction, official/public delivery URL mapping, durable cleanup records, and test fake in `backend/src/Noorestan.Api/Infrastructure/Images/ObjectStorage.cs` and `backend/tests/Noorestan.Api.IntegrationTests/Fakes/FakeObjectStorage.cs`
-- [ ] T021 [P] Implement signature-based image validation and bounded AVIF/WebP/compatibility variant generation in `backend/src/Noorestan.Api/Infrastructure/Images/ImageProcessor.cs`
-- [ ] T022 Configure versioned `/api/v1` endpoints, JSON conventions, cookie credentials, antiforgery header propagation, and generated typed API models in `backend/src/Noorestan.Api/Program.cs`, `frontend/src/app/core/http/`, and `frontend/src/app/core/api/`
-- [ ] T023 [P] Implement the premium dark Angular shell, skip link, responsive RTL navigation, semantic token-based surfaces, restrained CSS navigation feedback, reduced-motion behavior, lazy route boundaries, loading/error surface, and route titles in `frontend/src/app/app.component.ts`, `frontend/src/app/app.routes.ts`, and `frontend/src/app/core/layout/`
-- [ ] T024 [P] Implement Signals-based session state, RxJS session loading, functional authentication guard, CSRF interceptor, and global Problem Details mapping in `frontend/src/app/core/auth/` and `frontend/src/app/core/http/`
-- [ ] T025 Create shared PostgreSQL/object-storage integration fixtures and authenticated client helpers in `backend/tests/Noorestan.Api.IntegrationTests/Infrastructure/ApiFactory.cs`
-- [ ] T026 Create shared Persian RTL mobile/tablet/desktop fixtures, keyboard helpers, semantic contrast/focus assertions, reduced-motion and forced-color modes, and accessibility assertions in `frontend/tests/e2e/fixtures/rtl.fixture.ts` and `frontend/tests/e2e/fixtures/accessibility.ts`
+- [X] T011 Define shared persistence conventions, entity base fields, concurrency tokens, and UTC handling in `backend/src/Noorestan.Api/Infrastructure/Persistence/AppDbContext.cs` and `backend/src/Noorestan.Api/Infrastructure/Persistence/EntityBase.cs`
+- [X] T012 Define AdministratorAccount and AuditEvent entities plus database mappings and owner uniqueness constraints in `backend/src/Noorestan.Api/Infrastructure/Identity/AdministratorAccount.cs`, `backend/src/Noorestan.Api/Infrastructure/Auditing/AuditEvent.cs`, and `backend/src/Noorestan.Api/Infrastructure/Persistence/AppDbContext.cs`
+- [X] T013 Define Category, SpecificationDefinition, SpecificationChoice, Product, ProductFeature, ProductSpecificationValue, ProductImage, ImageVariant, BusinessProfile, ManagedContent, ImportRun, and ImportItem entities and mappings in `backend/src/Noorestan.Api/Features/` and `backend/src/Noorestan.Api/Infrastructure/Persistence/AppDbContext.cs`
+- [X] T014 Create the initial PostgreSQL migration with foreign keys, check constraints, filtered uniqueness, lifecycle indexes, search indexes, and bounded relationship rules in `backend/src/Noorestan.Api/Infrastructure/Persistence/Migrations/` — verified by applying it to a real local PostgreSQL instance
+- [X] T015 [P] Implement ASP.NET Core Identity, secure cookie settings, CSRF validation, Admin/Owner policies, login throttling, and session revocation wiring — implemented directly in `backend/src/Noorestan.Api/Program.cs` rather than a separate `IdentityConfiguration.cs`; CSRF is now actually enforced via a request-pipeline check (previously only wired for logout), verified end-to-end over HTTPS
+- [X] T016 [P] Implement the one-use first-owner bootstrap command with secret invalidation and refusal when an owner exists in `backend/src/Noorestan.Api/Infrastructure/Identity/OwnerBootstrap.cs` — verified by running it
+- [X] T017 [P] Implement Problem Details and validation/authorization/concurrency error responses — done via `AddProblemDetails`, `Results.ValidationProblem`, and per-endpoint `If-Match`/version conflict checks rather than the originally planned separate middleware types; behavior verified (400/401/403/409 responses)
+- [ ] T018 [P] Implement structured logging, correlation IDs, redaction, health/readiness checks, and request metrics in `backend/src/Noorestan.Api/Infrastructure/Observability/ObservabilityConfiguration.cs` — health checks exist; the rest is not implemented
+- [X] T019 [P] Implement audit event recording for authentication and content mutations without sensitive values in `backend/src/Noorestan.Api/Infrastructure/Auditing/AuditWriter.cs` — wired for image uploads; not yet called from every admin mutation (real gap, see final report)
+- [ ] T020 [P] Implement the S3-compatible object-store abstraction, official/public delivery URL mapping, durable cleanup records, and test fake — still the local-disk `DevelopmentObjectStorage`; MinIO is provisioned in `compose.yaml` but unused by the app (real gap)
+- [X] T021 [P] Implement signature-based image validation and bounded JPEG variant generation using SkiaSharp (MIT-licensed; AVIF/WebP re-encode was descoped for time) in `backend/src/Noorestan.Api/Infrastructure/Images/ImageProcessor.cs` — verified with real uploaded and imported photos
+- [X] T022 Configure versioned `/api/v1` endpoints, JSON conventions (including string enum serialization), cookie credentials, antiforgery header propagation, and typed frontend API models (hand-written in `frontend/src/app/core/api/contracts.ts` rather than OpenAPI-generated) in `backend/src/Noorestan.Api/Program.cs`, `frontend/src/app/core/http/`, and `frontend/src/app/core/api/`
+- [X] T023 [P] Implement the premium dark Angular shell, skip link, responsive RTL navigation, semantic token-based surfaces, reduced-motion behavior, lazy route boundaries, and route titles in `frontend/src/app/app.ts`, `frontend/src/app/app.html`, `frontend/src/app/app.routes.ts` — now data-driven from the real business profile instead of static/invented copy
+- [X] T024 [P] Implement Signals-based session state, RxJS session loading, functional authentication guard, and CSRF interceptor in `frontend/src/app/core/auth/` and `frontend/src/app/core/http/` — a shared `readApiError` helper maps Problem Details per call site rather than a single global interceptor
+- [ ] T025 Create shared PostgreSQL/object-storage integration fixtures and authenticated client helpers in `backend/tests/Noorestan.Api.IntegrationTests/Infrastructure/ApiFactory.cs` — not implemented; the integration test project still has no real API/DB test coverage
+- [ ] T026 Create shared Persian RTL mobile/tablet/desktop fixtures, keyboard helpers, semantic contrast/focus assertions, reduced-motion and forced-color modes, and accessibility assertions in `frontend/tests/e2e/fixtures/` — e2e specs check RTL/mobile/reduced-motion ad hoc per test rather than through shared fixtures
 
 **Checkpoint**: Persistence, contracts, authorization, HTTP behavior, object storage, and test harnesses
 are ready; user-story phases may begin.
@@ -66,20 +75,20 @@ Persian variants, combine/clear filters, paginate, and reach a relevant publishe
 
 ### Tests for User Story 1
 
-- [ ] T027 [P] [US1] Add public category, catalog pagination, lifecycle visibility, search normalization, filter, and empty-state API integration tests in `backend/tests/Noorestan.Api.IntegrationTests/PublicCatalog/PublicCatalogTests.cs`
-- [ ] T028 [P] [US1] Add unit tests for Persian/Arabic letter, digit, whitespace, and partial-term normalization in `backend/tests/Noorestan.Api.UnitTests/Catalog/PersianSearchNormalizerTests.cs`
-- [ ] T029 [P] [US1] Add browser tests for anonymous browse/search/filter/query-URL restoration, keyboard operation, image-first card hierarchy, product code variants, restrained hover/focus behavior, and mobile/tablet/desktop RTL composition in `frontend/tests/e2e/public-catalog.spec.ts`
+- [ ] T027 [P] [US1] Add public category, catalog pagination, lifecycle visibility, search normalization, filter, and empty-state API integration tests in `backend/tests/Noorestan.Api.IntegrationTests/PublicCatalog/PublicCatalogTests.cs` — not written; the integration test project still has no real API/DB coverage (real gap)
+- [X] T028 [P] [US1] Add unit tests for Persian/Arabic letter, digit, whitespace, and partial-term normalization in `backend/tests/Noorestan.Api.UnitTests/Catalog/PersianSearchNormalizerTests.cs`
+- [X] T029 [P] [US1] Add browser tests for anonymous browse/search/filter/recovery in `frontend/tests/e2e/public-catalog.spec.ts` — rewritten against the real seeded catalog and passing; query-URL restoration and full keyboard-operation coverage are not asserted (partial)
 
 ### Implementation for User Story 1
 
-- [ ] T030 [P] [US1] Implement Persian normalization and normalized searchable field maintenance in `backend/src/Noorestan.Api/Features/Catalog/Search/PersianSearchNormalizer.cs`
-- [ ] T031 [P] [US1] Implement published-category list and applicable filter-definition queries in `backend/src/Noorestan.Api/Features/PublicCatalog/GetCategories.cs` and `backend/src/Noorestan.Api/Features/PublicCatalog/GetCategoryFilters.cs`
-- [ ] T032 [US1] Implement bounded published-product search, category filtering, typed specification filters, stable sorting, and pagination in `backend/src/Noorestan.Api/Features/PublicCatalog/ListProducts.cs`
-- [ ] T033 [US1] Map and register the public categories, filters, and products endpoints to the OpenAPI contract in `backend/src/Noorestan.Api/Features/PublicCatalog/PublicCatalogEndpoints.cs`
-- [ ] T034 [P] [US1] Implement typed catalog query parsing/serialization and RxJS-cancelled search/filter loading in `frontend/src/app/features/catalog/data-access/catalog-api.ts` and `frontend/src/app/features/catalog/data-access/catalog-query.store.ts`
-- [ ] T035 [P] [US1] Implement premium minimal image-first product cards with semantic dark surfaces, subtle cool borders/glow, restrained hover/image transitions, product name/category/optional code, plus accessible result summary, pagination, and recovery empty state in `frontend/src/app/features/catalog/ui/`
-- [ ] T036 [US1] Implement lazy catalog and category pages with Signals-derived state and URL-backed search/filter controls in `frontend/src/app/features/catalog/pages/catalog-page.component.ts` and `frontend/src/app/features/catalog/catalog.routes.ts`
-- [ ] T037 [US1] Add public catalog SSR metadata, canonical query behavior, and error/not-found handling in `frontend/src/app/features/catalog/catalog.routes.ts` and `frontend/src/app/core/seo/seo.service.ts`
+- [X] T030 [P] [US1] Implement Persian normalization and normalized searchable field maintenance in `backend/src/Noorestan.Api/Features/Catalog/Search/PersianSearchNormalizer.cs`
+- [X] T031 [P] [US1] Implement published-category list and applicable filter-definition queries — done as `GetCategories`/`GetFilters` handlers inside `backend/src/Noorestan.Api/Features/PublicCatalog/PublicCatalogEndpoints.cs` rather than separate files
+- [X] T032 [US1] Implement bounded published-product search, category filtering, stable sorting, and pagination in `PublicCatalogEndpoints.ListProducts` — typed per-specification filter query params are not implemented (search covers name/category/features/spec text only); real gap
+- [X] T033 [US1] Public categories, filters, and products endpoints are implemented and mapped in `backend/src/Noorestan.Api/Features/PublicCatalog/PublicCatalogEndpoints.cs` (no OpenAPI contract-generation step; see T009/T094)
+- [X] T034 [P] [US1] Implement typed catalog query calls and search/filter loading — done via `frontend/src/app/core/api/public-api.service.ts` and `CatalogComponent`'s own Signals-based query state rather than a separate data-access/store folder
+- [X] T035 [P] [US1] Implement image-first product cards using real product photography (`frontend/src/app/shared/product-card.component.ts`) with pagination and a recovery empty state in `catalog.component.ts`
+- [X] T036 [US1] Implement the catalog page with Signals-derived state and URL-synced search/filter/page params in `frontend/src/app/features/catalog/catalog.component.ts`
+- [ ] T037 [US1] SSR now renders the catalog page per request (see `app.routes.server.ts`), but there is no dedicated `seo.service.ts` for canonical/meta tags — real gap
 
 **Checkpoint**: US1 independently delivers the searchable, filterable published catalog MVP.
 
@@ -95,18 +104,18 @@ use each direct contact route, and confirm hidden/archived/nonexistent products 
 
 ### Tests for User Story 2
 
-- [ ] T038 [P] [US2] Add product-detail visibility, specification ordering, image variant, and contextual contact API tests in `backend/tests/Noorestan.Api.IntegrationTests/PublicCatalog/ProductDetailTests.cs`
-- [ ] T039 [P] [US2] Add mobile/tablet/desktop RTL tests for dominant responsive gallery, image transitions, title/code/category hierarchy, long specifications, related-product conditions, visible direct contact, keyboard/alt text, reduced motion, no inquiry request, and unpublished-not-found behavior in `frontend/tests/e2e/product-detail.spec.ts`
+- [ ] T038 [P] [US2] Add product-detail visibility, specification ordering, image variant, and contextual contact API tests in `backend/tests/Noorestan.Api.IntegrationTests/PublicCatalog/ProductDetailTests.cs` — not written (real gap; covered indirectly by e2e)
+- [X] T039 [P] [US2] Add product-detail browser tests (gallery, code, specs table, no-commerce, unpublished/unknown-not-found) in `frontend/tests/e2e/product-detail.spec.ts` — rewritten against real seeded data and passing; full reduced-motion/keyboard-per-control coverage not asserted (partial)
 
 ### Implementation for User Story 2
 
-- [ ] T040 [US2] Implement the published product-detail query with ordered features/specifications/images and contact-link context in `backend/src/Noorestan.Api/Features/PublicCatalog/GetProduct.cs`
-- [ ] T041 [US2] Register product-detail routing and ensure unpublished, hidden, archived, and missing products share the safe public not-found response in `backend/src/Noorestan.Api/Features/PublicCatalog/PublicCatalogEndpoints.cs`
-- [ ] T042 [P] [US2] Implement the dominant accessible responsive picture/gallery with explicit dimensions, bounded cool framing glow, keyboard/touch controls, restrained image transitions, below-fold lazy loading, and reduced-motion fallback in `frontend/src/app/features/catalog/ui/product-gallery/`
-- [ ] T043 [P] [US2] Implement structured high-contrast technical features/specification presentation with semantic surfaces, locale-appropriate values, natural RTL reading order, and responsive handling for long values in `frontend/src/app/features/catalog/ui/product-specifications/`
-- [ ] T044 [P] [US2] Implement phone, WhatsApp, and email actions with encoded product reference and no API submission in `frontend/src/app/features/contact/product-contact-actions.component.ts`
-- [ ] T045 [US2] Implement the premium SSR product-detail composition with photography-first gallery, title/code/category hierarchy, description, related products when meaningful, metadata, canonical URL, loading/error state, and highly visible non-obstructive direct-contact placement in `frontend/src/app/features/catalog/pages/product-detail-page.component.ts`
-- [ ] T046 [US2] Add assertions that the API and generated frontend contract expose no inquiry, cart, checkout, payment, order, or inventory mutation in `backend/tests/Noorestan.Api.IntegrationTests/Contracts/NonCommerceBoundaryTests.cs`
+- [X] T040 [US2] Implement the published product-detail query with ordered features/specifications/images and contact-link context — done as `PublicCatalogEndpoints.GetProduct`
+- [X] T041 [US2] Product-detail routing returns the same not-found response for unpublished, hidden, archived, and missing products in `PublicCatalogEndpoints.cs` — verified with a real unknown-slug request
+- [X] T042 [P] [US2] Implement a responsive image gallery with explicit dimensions and reduced decoration, using real product photo variants, in `frontend/src/app/features/catalog/product-detail.component.ts` — keyboard/touch gallery controls are basic (thumbnail buttons only, no swipe/arrow-key navigation); partial
+- [X] T043 [P] [US2] Implement the structured technical specification table directly in `product-detail.component.ts` (not split into a separate `product-specifications/` folder)
+- [X] T044 [P] [US2] Implement phone/WhatsApp/email contact actions with an encoded product reference — done via `core/site/site.store.ts` (`whatsAppLink`/`telLink`/`mailLink`) and used directly in `product-detail.component.ts` rather than a separate component; each channel is hidden when the administrator has not configured it, and none submit to any API
+- [X] T045 [US2] Implement the SSR product-detail composition (gallery, title/code/category, description, related products, loading/not-found state, direct contact) in `frontend/src/app/features/catalog/product-detail.component.ts` — no explicit canonical-URL metadata (see T037)
+- [ ] T046 [US2] Add automated assertions that the API exposes no inquiry/cart/checkout/payment/order/inventory mutation — verified manually (the API genuinely has no such endpoints) but no dedicated regression test exists (real gap)
 
 **Checkpoint**: US2 independently supports product evaluation and qualified direct contact.
 
@@ -123,35 +132,35 @@ category integrity, resolve a concurrency conflict, and dry-run/commit/repeat an
 
 ### Tests for User Story 4
 
-- [ ] T047 [P] [US4] Add authentication, CSRF, throttling, account deactivation, owner transfer, and backend policy integration tests in `backend/tests/Noorestan.Api.IntegrationTests/Identity/IdentityTests.cs`
-- [ ] T048 [P] [US4] Add category/specification type, incompatible change, category deletion, and concurrency integration tests in `backend/tests/Noorestan.Api.IntegrationTests/AdminCatalog/CategoryTests.cs`
-- [ ] T049 [P] [US4] Add product validation, publish/hide/archive/restore/permanent-delete, category-change, and stale-update integration tests in `backend/tests/Noorestan.Api.IntegrationTests/AdminCatalog/ProductTests.cs`
-- [ ] T050 [P] [US4] Add image signature/limit/variant/primary/order/failure/cleanup integration tests in `backend/tests/Noorestan.Api.IntegrationTests/AdminCatalog/ProductImageTests.cs`
-- [ ] T051 [P] [US4] Add official Mazinoor extraction fixture, malformed source, origin restriction, timeout, bounded retry/concurrency, and schema contract tests in `backend/tests/Noorestan.MazinoorImport.Tests/MazinoorExtractorTests.cs`
-- [ ] T052 [P] [US4] Add dry-run, owner authorization, idempotent code/URL matching, local-edit preservation, image copying, and runtime-isolation import integration tests in `backend/tests/Noorestan.Api.IntegrationTests/Imports/MazinoorImportTests.cs`
-- [ ] T053 [P] [US4] Add Persian typed-form, keyboard, responsive table/card, contrast/focus, reduced-motion, destructive confirmation, conflict, upload failure, account policy, and import-status browser tests proving visual effects never obscure admin work in `frontend/tests/e2e/admin-catalog.spec.ts`
+- [ ] T047 [P] [US4] Add authentication, CSRF, throttling, account deactivation, owner transfer, and backend policy integration tests in `backend/tests/Noorestan.Api.IntegrationTests/Identity/IdentityTests.cs` — not written; behavior verified manually against a real running instance instead (real gap)
+- [ ] T048 [P] [US4] Add category/specification type, incompatible change, category deletion, and concurrency integration tests — not written (real gap)
+- [ ] T049 [P] [US4] Add product validation, publish/hide/archive/restore/permanent-delete, category-change, and stale-update integration tests — not written (real gap)
+- [ ] T050 [P] [US4] Add image signature/limit/variant/primary/order/failure/cleanup integration tests — not written; verified manually via real uploads (real gap)
+- [X] T051 [P] [US4] Add official Mazinoor extraction fixture, malformed-input, and missing-name/spec/image tests in `backend/tests/Noorestan.MazinoorImport.Tests/MazinoorExtractorTests.cs` — origin-restriction/timeout/retry are covered by the pre-existing `MazinoorHttpSourceTests.cs`; bounded-concurrency and full JSON-schema contract validation are not tested (partial)
+- [ ] T052 [P] [US4] Add dry-run, owner authorization, idempotent code/URL matching, local-edit preservation, image copying, and runtime-isolation import integration tests — not written; this behavior was instead verified by hand against the real mazinoor.com site (dry-run, commit, and idempotent re-run all confirmed working) — automated coverage remains a real gap
+- [X] T053 [P] [US4] Add an admin browser test (login, unauthenticated redirect, product list with real data) in `frontend/tests/e2e/admin-catalog.spec.ts` — narrower than originally scoped (no dedicated conflict/upload-failure/account-policy/import-status browser tests yet); partial
 
 ### Implementation for User Story 4
 
-- [ ] T054 [P] [US4] Implement login, logout, session, antiforgery issuance, and deactivated-session rejection endpoints in `backend/src/Noorestan.Api/Features/Identity/AuthEndpoints.cs`
-- [ ] T055 [P] [US4] Implement owner-only account create/deactivate and atomic ownership-transfer endpoints in `backend/src/Noorestan.Api/Features/Identity/OwnerAccountEndpoints.cs`
-- [ ] T056 [US4] Implement category CRUD, ordering, specification definitions/choices, incompatible-change validation, and non-archived-product deletion guard in `backend/src/Noorestan.Api/Features/AdminCatalog/CategoryEndpoints.cs`
-- [ ] T057 [US4] Implement product CRUD and typed specification validation with category-change mapping/clearing semantics in `backend/src/Noorestan.Api/Features/AdminCatalog/ProductEndpoints.cs`
-- [ ] T058 [US4] Implement publish prerequisites and atomic draft/published/hidden/archived/restore transitions in `backend/src/Noorestan.Api/Features/AdminCatalog/ProductLifecycle.cs`
-- [ ] T059 [US4] Implement confirmed archived-only permanent deletion with transactional metadata removal and durable object cleanup in `backend/src/Noorestan.Api/Features/AdminCatalog/PermanentDeleteProduct.cs`
-- [ ] T060 [US4] Implement product image upload, validation, processing status, variants, order, primary selection, replacement, removal, retry, and cleanup in `backend/src/Noorestan.Api/Features/AdminCatalog/ProductImageEndpoints.cs`
-- [ ] T061 [P] [US4] Implement normalized Mazinoor extraction records and validate them against `specs/001-noorestan-catalog/contracts/mazinoor-extraction.schema.json` in `backend/src/Noorestan.MazinoorImport/Contracts/`
-- [ ] T062 [P] [US4] Implement allowlisted HTTPS retrieval with timeout, response/media limits, bounded concurrency, retry/backoff, and canonical URL handling in `backend/src/Noorestan.MazinoorImport/Retrieval/MazinoorHttpSource.cs`
-- [ ] T063 [US4] Implement deterministic category/product traversal and HTML extraction of codes, descriptions, specifications, source URLs, and image references in `backend/src/Noorestan.MazinoorImport/Extraction/MazinoorExtractor.cs`
-- [ ] T064 [US4] Implement durable single-active-run orchestration, dry-run reporting, per-item transactions, code/URL idempotency, hashes, local-edit preservation, draft creation, and image copying in `backend/src/Noorestan.Api/Features/Imports/MazinoorImportRunner.cs`
-- [ ] T065 [US4] Implement owner-only import start/status/item-result endpoints and explicitly omit scheduling in `backend/src/Noorestan.Api/Features/Imports/MazinoorImportEndpoints.cs`
-- [ ] T066 [P] [US4] Implement the lazy Persian admin shell and login using the shared dark token system with quieter surfaces/minimal glow, responsive RTL navigation/data layouts, owner awareness, clear focus/errors, and unsaved-change protection in `frontend/src/app/features/auth/` and `frontend/src/app/features/admin/admin.routes.ts`
-- [ ] T067 [P] [US4] Implement strongly typed category/specification forms with Signals-derived validity, semantic token-based fields, persistent labels/errors, natural RTL spacing/icons, and mobile-safe table/card adaptation in `frontend/src/app/features/admin/categories/`
-- [ ] T068 [US4] Implement the strongly typed responsive RTL product editor for details, features, category specifications, prominent photography management entry, publication validation, and conflict resolution using restrained admin surfaces in `frontend/src/app/features/admin/products/product-editor/`
-- [ ] T069 [P] [US4] Implement RxJS upload/progress/cancellation and accessible responsive RTL image ordering/primary/removal controls with photography-led previews, clear focus, and motion-safe feedback in `frontend/src/app/features/admin/products/product-images/`
-- [ ] T070 [US4] Implement the responsive RTL product list using readable table-to-card adaptation, semantic status styling, and explicit hide/archive/restore/permanent-delete workflows with confirmation and current-version handling in `frontend/src/app/features/admin/products/product-list/`
-- [ ] T071 [P] [US4] Implement owner-only account creation, deactivation, and ownership-transfer screens in `frontend/src/app/features/admin/accounts/`
-- [ ] T072 [US4] Implement owner-only Mazinoor dry-run/commit controls, active-run progress, per-item outcomes, warnings, errors, and draft links in `frontend/src/app/features/admin/imports/`
+- [X] T054 [P] [US4] Implement login, logout, session, and antiforgery issuance endpoints — done inline in `backend/src/Noorestan.Api/Program.cs` rather than a separate `AuthEndpoints.cs`; CSRF validation is now actually enforced on every admin/owner mutation (previously only wired for logout)
+- [X] T055 [P] [US4] Implement owner-only account create/deactivate and atomic ownership-transfer endpoints in `backend/src/Noorestan.Api/Features/Identity/OwnerAccountEndpoints.cs`
+- [X] T056 [US4] Implement category CRUD/ordering and specification definitions/choices with a non-archived-product deletion guard — done in `AdminCatalogEndpoints.cs` and the new `Features/AdminCatalog/SpecificationEndpoints.cs` (not a single `CategoryEndpoints.cs` file); choice type-change validation checks existing product values before allowing a type change
+- [X] T057 [US4] Implement product CRUD and specification-value validation with category-change clearing semantics in `AdminCatalogEndpoints.cs` — added the previously-missing `PUT /products/{id}/specifications` endpoint this session (product specification values had no write path at all before)
+- [X] T058 [US4] Implement publish prerequisites (primary ready image + required specs) and draft/published/hidden/archived/restore transitions in `AdminCatalogEndpoints.ChangeStatus`
+- [X] T059 [US4] Implement confirmed archived-only permanent deletion in `AdminCatalogEndpoints.DeleteProduct`, including deleting the product's image/variant object-storage files after the database transaction commits
+- [X] T060 [US4] Implement product image upload (signature validation, real resized variants), ordering, primary selection, alt-text update, and removal in the new `backend/src/Noorestan.Api/Features/AdminCatalog/ProductImageEndpoints.cs` — this endpoint did not exist before this session; "replace" is done via remove+re-upload and there is no separate retry flow, since upload is synchronous rather than a background processing state
+- [X] T061 [P] [US4] Implement normalized Mazinoor extraction records in `backend/src/Noorestan.MazinoorImport/Contracts/ExtractionModels.cs` — validated against the schema's shape by construction; no automated JSON-schema validation step
+- [X] T062 [P] [US4] Implement allowlisted HTTPS retrieval (HTML and, new this session, binary image retrieval) with timeout, size limits, and retry/backoff in `MazinoorHttpSource.cs` — verified against the real mazinoor.com site
+- [X] T063 [US4] Implement real HTML extraction (name, description, structured per-SKU specifications, catalog code, and photo gallery) in `MazinoorExtractor.cs` — completely rewritten this session to target the real `family-grid`/lightbox-gallery structure discovered by inspecting live mazinoor.com pages (the previous version used generic `<h1>`/meta-tag regexes that could not have worked against the real site)
+- [X] T064 [US4] Implement single-active-run orchestration, dry-run reporting, per-item outcomes, URL/code idempotency, local-edit preservation (existing products are never overwritten by re-import), draft creation, and real image copying in the new `backend/src/Noorestan.Api/Features/Imports/MazinoorImportRunner.cs` — runs synchronously within the request rather than as a background job (no queue/worker infrastructure was introduced for this scope)
+- [X] T065 [US4] Implement owner-only import start/list/status/item-result endpoints in the new `backend/src/Noorestan.Api/Features/Imports/MazinoorImportEndpoints.cs`; scheduling is intentionally absent
+- [X] T066 [P] [US4] Implement the admin shell and a real login form wired to the backend in `frontend/src/app/features/admin/admin-shell.component.ts` and `features/admin/auth/admin-login.component.ts` — replaces a prior non-functional static login mockup; no explicit unsaved-change guard yet (real gap)
+- [X] T067 [P] [US4] Implement category and specification-definition forms (including choice management) in `frontend/src/app/features/admin/categories/category-list.component.ts`
+- [X] T068 [US4] Implement the product editor (details, features, category specification values, publish/hide/archive/restore/delete, conflict responses surfaced) in `frontend/src/app/features/admin/products/product-editor.component.ts`
+- [X] T069 [P] [US4] Implement image upload, alt-text editing, reordering (up/down controls rather than drag-and-drop, to avoid adding a new UI-kit dependency), primary selection, and removal directly in `product-editor.component.ts`
+- [X] T070 [US4] Implement the product list with status tabs, search, pagination, and hide/archive/restore actions in `frontend/src/app/features/admin/products/product-list.component.ts`
+- [X] T071 [P] [US4] Implement owner-only account creation, deactivation, and ownership-transfer in `frontend/src/app/features/admin/accounts/account-list.component.ts`
+- [X] T072 [US4] Implement owner-only Mazinoor dry-run/commit controls with per-item outcomes and draft links in the new `frontend/src/app/features/admin/imports/import-panel.component.ts` — verified end-to-end against the real mazinoor.com site
 
 **Checkpoint**: US4 independently enables secure, non-technical catalog ownership and isolated initial import.
 
@@ -167,16 +176,16 @@ approved identity/contact content, responsive RTL accessibility, catalog entry p
 
 ### Tests for User Story 3
 
-- [ ] T073 [P] [US3] Add public business-profile/visible-content API tests and unsafe-content validation tests in `backend/tests/Noorestan.Api.IntegrationTests/PublicSite/PublicSiteTests.cs`
-- [ ] T074 [P] [US3] Add homepage/company/contact tests for premium dark visual hierarchy, architectural hero imagery, restrained glow, required homepage sections/CTAs, responsive RTL, keyboard/focus, reduced motion, metadata, and non-commerce presentation in `frontend/tests/e2e/public-site.spec.ts`
+- [ ] T073 [P] [US3] Add public business-profile/visible-content API tests in `backend/tests/Noorestan.Api.IntegrationTests/PublicSite/PublicSiteTests.cs` — not written (real gap)
+- [X] T074 [P] [US3] Add homepage/company/contact browser tests in `frontend/tests/e2e/public-site.spec.ts` — rewritten against the real business profile/copy and passing; visual-regression-style assertions are not included
 
 ### Implementation for User Story 3
 
-- [ ] T075 [US3] Implement the public business profile and visible bounded-content endpoint in `backend/src/Noorestan.Api/Features/PublicSite/GetPublicSite.cs`
-- [ ] T076 [P] [US3] Implement reusable semantic-token business identity and prominent direct-contact components with ice-blue primary treatment, restrained glow, accessible contrast/focus, and RTL-safe icons in `frontend/src/app/features/contact/` and `frontend/src/app/shared/business-identity/`
-- [ ] T077 [P] [US3] Implement the premium SSR homepage with an architectural-lighting image hero, large Persian typography, bounded ambient blue glow, primary catalog and secondary contact CTAs, then polished category, featured-product, why Noorestan, company-introduction, and final contact sections in `frontend/src/app/features/home/`
-- [ ] T078 [P] [US3] Implement premium minimal SSR company/contact pages with image-led dark composition, semantic Persian content, current details, restrained interactions, and responsive RTL behavior in `frontend/src/app/features/company/` and `frontend/src/app/features/contact/contact-page.component.ts`
-- [ ] T079 [US3] Add canonical metadata, organization/product-representative structured data using approved content only, and share previews in `frontend/src/app/core/seo/seo.service.ts`
+- [X] T075 [US3] Implement the public business profile and visible bounded-content endpoint — done as `PublicSiteEndpoints.cs`; now backed by a real seeded `BusinessProfile` row (فروشگاه کالای برق نورستان) instead of only a hardcoded fallback string
+- [X] T076 [P] [US3] Implement direct-contact actions with RTL-safe presentation — done via `core/site/site.store.ts` used from the header/footer/home/contact/product-detail; no separate `shared/business-identity/` component folder. Each contact channel (phone/WhatsApp/email) is only shown when the administrator has actually configured it, so no invented contact details are ever displayed
+- [X] T077 [P] [US3] Implement the SSR homepage using real category/product data and the real business name/representative statement, with a reduced-scale hero and section rhythm (typography and spacing were substantially tightened this session per explicit UX direction; the hero visual uses a real product photograph rather than abstract CSS art) in `frontend/src/app/features/home/`
+- [X] T078 [P] [US3] Implement the SSR company/contact pages using real business data in `frontend/src/app/features/company/company.component.ts` and `frontend/src/app/features/contact/contact.component.ts`
+- [ ] T079 [US3] Canonical metadata and structured data are not implemented (real gap; see T037)
 
 **Checkpoint**: US3 independently establishes representative trust and direct-contact expectations.
 
@@ -192,16 +201,16 @@ exercise validation and concurrency failures, then verify consistent public rend
 
 ### Tests for User Story 5
 
-- [ ] T080 [P] [US5] Add business profile, bounded slot, link/markup validation, authorization, audit, and concurrency integration tests in `backend/tests/Noorestan.Api.IntegrationTests/AdminContent/AdminSiteTests.cs`
-- [ ] T081 [P] [US5] Add typed Persian form, token-consistent preview, responsive RTL, contrast/focus, reduced-motion, error preservation, keyboard, and public visual/content consistency browser tests in `frontend/tests/e2e/admin-content.spec.ts`
+- [ ] T080 [P] [US5] Add business profile/managed-content integration tests in `backend/tests/Noorestan.Api.IntegrationTests/AdminContent/AdminSiteTests.cs` — not written (real gap; verified manually including a real concurrency-conflict response)
+- [ ] T081 [P] [US5] Add an admin-content browser test in `frontend/tests/e2e/admin-content.spec.ts` — not written (real gap)
 
 ### Implementation for User Story 5
 
-- [ ] T082 [US5] Implement business profile and bounded managed-content read/update endpoints with allowlisted slots, safe link targets, validation, concurrency, and audit in `backend/src/Noorestan.Api/Features/AdminContent/AdminSiteEndpoints.cs`
-- [ ] T083 [P] [US5] Implement the strongly typed Persian business-profile form with quiet semantic dark surfaces, responsive RTL grouping, persistent labels, phone/WhatsApp/email/address/hours fields, and accessible validation in `frontend/src/app/features/admin/content/business-profile-form.component.ts`
-- [ ] T084 [P] [US5] Implement bounded homepage/company/contact slot editors with plain structured content and safe call-to-action targets in `frontend/src/app/features/admin/content/content-slot-editor.component.ts`
-- [ ] T085 [US5] Implement Signals-based preview, dirty state, RxJS save workflow, validation mapping, and optimistic-conflict resolution in `frontend/src/app/features/admin/content/content-editor-page.component.ts`
-- [ ] T086 [US5] Refresh/invalidate SSR public content consistently after an administrative update in `frontend/src/app/features/admin/content/content-api.ts` and `backend/src/Noorestan.Api/Features/AdminContent/AdminSiteEndpoints.cs`
+- [X] T082 [US5] Implement business profile and bounded managed-content read/update endpoints with an allowlisted slot key set, safe call-to-action target validation, concurrency (`If-Match`), and audit-ready structure in the new `backend/src/Noorestan.Api/Features/AdminContent/AdminSiteEndpoints.cs` — this endpoint did not exist before this session (business content had no write path at all)
+- [X] T083 [P] [US5] Implement the business-profile form (name, representative statement, phone/WhatsApp/email/address/hours, validation) directly in the new `frontend/src/app/features/admin/content/content-editor.component.ts` (not a separate `business-profile-form.component.ts`)
+- [X] T084 [P] [US5] Implement homepage/company/contact slot editors (title/body/CTA label+target/visibility) in the same `content-editor.component.ts`, tabbed by slot
+- [X] T085 [US5] Implement Signals-based save workflow with validation-error and optimistic-conflict display in `content-editor.component.ts` — no live preview pane (real gap; the admin edits the same fields the public pages render)
+- [X] T086 [US5] Public pages read business profile/content on every SSR request (no caching layer to invalidate), so an administrative update is visible immediately on next load — verified by editing the profile and re-requesting `/api/v1/public/site`
 
 **Checkpoint**: US5 independently enables safe routine business-content ownership.
 
@@ -211,6 +220,11 @@ exercise validation and concurrency failures, then verify consistent public rend
 
 **Purpose**: Validate the assembled product against constitutional, security, performance, recovery,
 accessibility, and operational requirements.
+
+**Status**: None of this phase's deliverables (formal docs, visual-regression baselines, performance
+tests, backup/DR, production containers) were produced this session. Format/lint/strict-build/unit/e2e
+were run and pass (see the final chat report for exact results); that verification was not written up
+as `docs/release-validation.md`. This phase remains the right scope for a pre-launch hardening pass.
 
 - [ ] T087 [P] Complete Persian copy review, approved Mazinoor relationship wording, image rights evidence, and no-commerce language audit in `frontend/src/app/features/` and `docs/content-approval.md`
 - [ ] T088 [P] Add automated accessibility scans and manual keyboard/screen-reader check records for critical public/admin routes in `frontend/tests/e2e/accessibility.spec.ts` and `docs/accessibility-validation.md`

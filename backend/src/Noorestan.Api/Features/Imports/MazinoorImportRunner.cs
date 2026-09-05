@@ -51,9 +51,13 @@ public sealed class MazinoorImportRunner(AppDbContext db, MazinoorExtractor extr
                 item.MazinoorProductCode = extracted.MazinoorProductCode;
                 item.SourceContentHash = extracted.Trace.SourceContentHash;
 
-                var existing = extracted.MazinoorProductCode is not null
-                    ? await db.Products.FirstOrDefaultAsync(p => p.MazinoorProductCode == extracted.MazinoorProductCode, cancellationToken)
-                    : await db.Products.FirstOrDefaultAsync(p => p.SourceUrl == sourceUrl, cancellationToken);
+                // The canonical source URL is preferred for idempotency: a Mazinoor family page can list
+                // its SKU variants in a different order between scrapes, so the "representative" product
+                // code chosen for a given URL is not guaranteed stable, while the URL itself is.
+                var existing = await db.Products.FirstOrDefaultAsync(p => p.SourceUrl == sourceUrl, cancellationToken)
+                    ?? (extracted.MazinoorProductCode is not null
+                        ? await db.Products.FirstOrDefaultAsync(p => p.MazinoorProductCode == extracted.MazinoorProductCode, cancellationToken)
+                        : null);
 
                 if (existing is not null)
                 {

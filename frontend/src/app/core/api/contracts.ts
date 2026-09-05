@@ -264,6 +264,36 @@ export interface ManagedContentEntity extends ManagedContentWrite {
   readonly version: number;
 }
 
+export type ImportMode = 'DryRun' | 'Commit';
+export type ImportRunStatus =
+  'Queued' | 'Running' | 'Completed' | 'CompletedWithWarnings' | 'Failed' | 'Cancelled';
+export type ImportItemOutcome = 'New' | 'Unchanged' | 'Updated' | 'Skipped' | 'Invalid' | 'Failed';
+
+export interface ImportRunSummary {
+  readonly new: number;
+  readonly unchanged: number;
+  readonly invalid: number;
+  readonly failed: number;
+}
+
+export interface ImportRunDto {
+  readonly id: string;
+  readonly mode: ImportMode;
+  readonly status: ImportRunStatus;
+  readonly startedAt?: string | null;
+  readonly completedAt?: string | null;
+  readonly summaryJson: string;
+}
+
+export interface ImportItemDto {
+  readonly id: string;
+  readonly canonicalSourceUrl: string;
+  readonly mazinoorProductCode?: string | null;
+  readonly outcome: ImportItemOutcome;
+  readonly productId?: string | null;
+  readonly messagesJson: string;
+}
+
 export interface AdministratorAccountDto {
   readonly id: string;
   readonly displayName: string;
