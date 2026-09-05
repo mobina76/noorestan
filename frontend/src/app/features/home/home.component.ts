@@ -185,7 +185,7 @@ export class HomeComponent {
     if (isPlatformBrowser(inject(PLATFORM_ID))) {
       const intervalId = setInterval(() => {
         this.activeSlide.update((current) => (current + 1) % this.heroSlides.length);
-      }, 6000);
+      }, 4000);
       inject(DestroyRef).onDestroy(() => clearInterval(intervalId));
     }
   }

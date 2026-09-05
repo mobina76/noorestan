@@ -39,16 +39,18 @@
   display: inline-flex;
   align-items: center;
   gap: 0.7rem;
-  padding: 0.45rem 1rem 0.45rem 0.6rem;
+  padding: 0.6rem 1.2rem 0.6rem 0.8rem;
   border: 1px solid var(--color-border);
   border-radius: 999px;
   background: rgb(11 22 38 / 70%);
   backdrop-filter: blur(6px);
   margin-block-end: 1.2rem;
+  max-width: 100%;
+  flex-wrap: wrap;
 }
 .partner-badge img {
   display: block;
-  height: 1.3rem;
+  height: 1.9rem;
   width: auto;
 }
 .partner-badge span {

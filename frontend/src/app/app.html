@@ -39,36 +39,165 @@
 <main id="main"><router-outlet /></main>
 @if (!isAdminRoute()) {
   <footer class="site-footer">
-    <div>
+    <div class="footer-brand-col">
       <a routerLink="/" class="brand footer-brand"
         ><span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i></span
         ><span
           ><strong>نورستان</strong><small>{{ site.site().businessNameFa }}</small></span
         ></a
       >
+      <p class="footer-tagline">{{ site.site().representativeStatementFa }}</p>
     </div>
     <div>
       <h2>دسترسی سریع</h2>
-      <a routerLink="/products">محصولات</a><a routerLink="/company">درباره ما</a
-      ><a routerLink="/contact">تماس</a>
+      <a routerLink="/products" class="footer-link">
+        <svg
+          class="footer-icon"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.6"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          aria-hidden="true"
+        >
+          <path d="M3.3 7 12 3l8.7 4-8.7 4-8.7-4z" />
+          <path d="M3.3 7v10l8.7 4 8.7-4V7" />
+          <path d="M12 11v10" />
+        </svg>
+        <span>محصولات</span>
+      </a>
+      <a routerLink="/company" class="footer-link">
+        <svg
+          class="footer-icon"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.6"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          aria-hidden="true"
+        >
+          <circle cx="12" cy="12" r="9" />
+          <path d="M12 8h.01M11 12h1v5h1" />
+        </svg>
+        <span>درباره ما</span>
+      </a>
+      <a routerLink="/contact" class="footer-link">
+        <svg
+          class="footer-icon"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.6"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          aria-hidden="true"
+        >
+          <path
+            d="M21 11.5a8.4 8.4 0 0 1-8.9 8.4A9 9 0 0 1 4 18l-3 1 1-3.4A8.4 8.4 0 0 1 12.6 3c4.6.2 8.2 3.9 8.4 8.5z"
+          />
+        </svg>
+        <span>تماس</span>
+      </a>
     </div>
     <div>
       <h2>ارتباط با نورستان</h2>
-      @for (phone of site.phones(); track phone.number) {
-        <a [href]="site.telLink(phone.number)" class="ltr phone-line"
-          >{{ phone.number }}
-          @if (phone.isAlsoFax) {
-            <small>(فکس)</small>
-          }
+      <div class="contact-list">
+        @for (phone of site.phones(); track phone.number) {
+          <a [href]="site.telLink(phone.number)" class="contact-line">
+            <svg
+              class="footer-icon"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.6"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              aria-hidden="true"
+            >
+              <path
+                d="M6.6 10.8c1.2 2.4 3.2 4.4 5.6 5.6l1.9-1.9c.3-.3.7-.4 1-.2 1.1.4 2.3.6 3.5.6.6 0 1 .4 1 1v3.4c0 .6-.4 1-1 1C10.6 21.3 2.7 13.4 2.7 3.4c0-.6.4-1 1-1H7c.6 0 1 .4 1 1 0 1.2.2 2.4.6 3.5.1.4 0 .8-.2 1z"
+              />
+            </svg>
+            <span class="ltr-text"
+              >{{ phone.number }}
+              @if (phone.isAlsoFax) {
+                <small>(فکس)</small>
+              }
+            </span>
+          </a>
+        }
+        @if (site.hasEmail()) {
+          <a [href]="site.mailLink('استعلام از نورستان')" class="contact-line">
+            <svg
+              class="footer-icon"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.6"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              aria-hidden="true"
+            >
+              <rect x="3" y="5" width="18" height="14" rx="2" />
+              <path d="m4 7 8 6 8-6" />
+            </svg>
+            <span class="ltr-text">{{ site.site().email }}</span>
+          </a>
+        }
+        @if (site.site().addressFa) {
+          <div class="contact-line address-line">
+            <svg
+              class="footer-icon"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.6"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              aria-hidden="true"
+            >
+              <path d="M12 21s7-6.1 7-11.5A7 7 0 0 0 5 9.5C5 14.9 12 21 12 21z" />
+              <circle cx="12" cy="9.5" r="2.3" />
+            </svg>
+            <p class="address">{{ site.site().addressFa }}</p>
+          </div>
+        }
+      </div>
+    </div>
+    <div>
+      <h2>شبکه‌های اجتماعی</h2>
+      <div class="social-links">
+        <!-- TODO: replace with real Instagram/Telegram links once provided -->
+        <a href="#" class="social-link" aria-label="اینستاگرام نورستان">
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.6"
+            aria-hidden="true"
+          >
+            <rect x="3" y="3" width="18" height="18" rx="5" />
+            <circle cx="12" cy="12" r="4" />
+            <circle cx="17.2" cy="6.8" r="1" fill="currentColor" stroke="none" />
+          </svg>
         </a>
-      }
-      @if (site.hasEmail()) {
-        <a [href]="site.mailLink('استعلام از نورستان')" class="ltr">{{ site.site().email }}</a>
-      }
-      @if (site.site().addressFa) {
-        <p class="address">{{ site.site().addressFa }}</p>
-      }
-      <p>برای قیمت، موجودی و سفارش با ما تماس بگیرید.</p>
+        <!-- TODO: replace with real Instagram/Telegram links once provided -->
+        <a href="#" class="social-link" aria-label="تلگرام نورستان">
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.6"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true"
+          >
+            <path d="M21 4 3 11.5l6 2m12-9.5-4 16-6-4.5m10-11.5-8 7" />
+          </svg>
+        </a>
+      </div>
     </div>
     <p class="copyright">© {{ year }} نورستان. تمامی حقوق محفوظ است.</p>
   </footer>
