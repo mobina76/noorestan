@@ -49,6 +49,7 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
         builder.Entity<ProductImage>().HasIndex(x => x.ProductId).IsUnique().HasFilter("\"IsPrimary\" = TRUE");
         builder.Entity<ImageVariant>().HasIndex(x => x.ObjectKey).IsUnique();
         builder.Entity<ImageVariant>().HasIndex(x => new { x.ProductImageId, x.Format, x.Width }).IsUnique();
+        builder.Entity<BusinessProfile>().OwnsMany(x => x.Phones, phones => phones.ToJson());
         builder.Entity<ManagedContent>().HasIndex(x => x.SlotKey).IsUnique();
         builder.Entity<ImportRun>().HasIndex(x => x.Status);
         builder.Entity<ImportItem>().HasIndex(x => new { x.ImportRunId, x.CanonicalSourceUrl }).IsUnique();

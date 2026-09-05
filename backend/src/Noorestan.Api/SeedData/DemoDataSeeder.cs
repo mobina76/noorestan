@@ -188,9 +188,15 @@ public static class DemoDataSeeder
             db.BusinessProfiles.Add(new BusinessProfile
             {
                 BusinessNameFa = "فروشگاه کالای برق نورستان",
-                RepresentativeStatementFa = "نماینده: آقایان شرفی",
+                RepresentativeStatementFa = "نماینده رسمی محصولات مازی‌نور — آقایان شرفی",
                 AddressFa = "تهران، خیابان لاله‌زار نو، نبش چهارراه منوچهری، پلاک ۴۷۵، کد پستی ۱۱۴۵۹۵۳۷۱۸",
-                Phone = string.Empty,
+                Phones =
+                [
+                    new PhoneNumber { Number = "021-33119296", IsAlsoFax = false },
+                    new PhoneNumber { Number = "021-33942443", IsAlsoFax = true },
+                    new PhoneNumber { Number = "021-33952021", IsAlsoFax = false },
+                    new PhoneNumber { Number = "021-33922177", IsAlsoFax = true },
+                ],
                 WhatsApp = string.Empty,
                 Email = string.Empty,
             });

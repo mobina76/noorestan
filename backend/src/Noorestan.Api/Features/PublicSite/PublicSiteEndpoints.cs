@@ -14,7 +14,7 @@ public static class PublicSiteEndpoints
                 .Select(x => new { x.SlotKey, x.TitleFa, x.BodyFa, x.CallToActionLabelFa, x.CallToActionTarget }).ToListAsync(cancellationToken);
             return Results.Ok(new { BusinessNameFa = profile?.BusinessNameFa ?? "نورستان",
                 RepresentativeStatementFa = profile?.RepresentativeStatementFa ?? "نماینده فروش محصولات روشنایی مازی‌نور",
-                Phone = profile?.Phone ?? string.Empty, WhatsApp = profile?.WhatsApp ?? string.Empty,
+                Phones = profile?.Phones.Select(p => new { p.Number, p.IsAlsoFax }) ?? [], WhatsApp = profile?.WhatsApp ?? string.Empty,
                 Email = profile?.Email ?? string.Empty, AddressFa = profile?.AddressFa, Content = content });
         });
         return endpoints;

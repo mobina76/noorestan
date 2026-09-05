@@ -4,7 +4,8 @@ using Noorestan.Api.Infrastructure.Persistence;
 
 namespace Noorestan.Api.Features.AdminContent;
 
-public sealed record BusinessProfileWrite(string BusinessNameFa, string RepresentativeStatementFa, string? AddressFa, string Phone, string WhatsApp, string Email, string? OperatingHoursFa);
+public sealed record PhoneNumberWrite(string Number, bool IsAlsoFax);
+public sealed record BusinessProfileWrite(string BusinessNameFa, string RepresentativeStatementFa, string? AddressFa, IReadOnlyList<PhoneNumberWrite> Phones, string WhatsApp, string Email, string? OperatingHoursFa);
 public sealed record ManagedContentWrite(string TitleFa, string BodyFa, string? CallToActionLabelFa, string? CallToActionTarget, bool IsVisible);
 
 public static class AdminSiteEndpoints
@@ -49,7 +50,10 @@ public static class AdminSiteEndpoints
         entity.BusinessNameFa = request.BusinessNameFa.Trim();
         entity.RepresentativeStatementFa = request.RepresentativeStatementFa.Trim();
         entity.AddressFa = request.AddressFa?.Trim();
-        entity.Phone = request.Phone.Trim();
+        entity.Phones = request.Phones
+            .Select(p => new PhoneNumber { Number = p.Number.Trim(), IsAlsoFax = p.IsAlsoFax })
+            .Where(p => p.Number.Length > 0)
+            .ToList();
         entity.WhatsApp = request.WhatsApp.Trim();
         entity.Email = request.Email.Trim();
         entity.OperatingHoursFa = request.OperatingHoursFa?.Trim();
