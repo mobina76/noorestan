@@ -40,10 +40,10 @@ public static class PublicCatalogEndpoints
             ? Results.NotFound() : Results.Ok(filters);
     }
 
-    private static async Task<IResult> ListProducts(string? q, string? category, int page, int pageSize, AppDbContext db, IObjectStorage storage, CancellationToken cancellationToken)
+    private static async Task<IResult> ListProducts(string? q, string? category, int? page, int? pageSize, AppDbContext db, IObjectStorage storage, CancellationToken cancellationToken)
     {
-        page = Math.Max(page, 1);
-        pageSize = Math.Clamp(pageSize is 0 ? 24 : pageSize, 1, 100);
+        var currentPage = Math.Max(page ?? 1, 1);
+        var take = Math.Clamp(pageSize ?? 24, 1, 100);
         var normalized = PersianSearchNormalizer.Normalize(q);
         var query = db.Products.AsNoTracking().Where(x => x.Status == ProductStatus.Published);
         if (!string.IsNullOrWhiteSpace(category)) query = query.Where(x => x.Category.Slug == category);
@@ -53,13 +53,13 @@ public static class PublicCatalogEndpoints
                 || x.Features.Any(f => f.TextFa.Contains(normalized)) || x.SpecificationValues.Any(v => v.NormalizedTextValue != null && v.NormalizedTextValue.Contains(normalized)));
         }
         var total = await query.CountAsync(cancellationToken);
-        var raw = await query.OrderBy(x => x.DisplayOrder).ThenBy(x => x.NameFa).Skip((page - 1) * pageSize).Take(pageSize)
+        var raw = await query.OrderBy(x => x.DisplayOrder).ThenBy(x => x.NameFa).Skip((currentPage - 1) * take).Take(take)
             .Select(x => new { x.Id, x.Slug, x.NameFa, x.MazinoorProductCode, Category = x.Category.NameFa, x.ShortDescriptionFa,
                 Image = x.Images.Where(i => i.IsPrimary && i.Status == ImageProcessingStatus.Ready).Select(i => new { i.OriginalObjectKey, i.AltTextFa }).FirstOrDefault() })
             .ToListAsync(cancellationToken);
         var items = raw.Select(x => new { x.Id, x.Slug, x.NameFa, x.MazinoorProductCode, x.Category, x.ShortDescriptionFa,
             PrimaryImage = x.Image is null ? null : new { Url = storage.GetPublicUrl(x.Image.OriginalObjectKey), x.Image.AltTextFa } });
-        return Results.Ok(new { Items = items, Page = page, PageSize = pageSize, Total = total });
+        return Results.Ok(new { Items = items, Page = currentPage, PageSize = take, Total = total });
     }
 
     private static async Task<IResult> GetProduct(string slug, AppDbContext db, IObjectStorage storage, CancellationToken cancellationToken)

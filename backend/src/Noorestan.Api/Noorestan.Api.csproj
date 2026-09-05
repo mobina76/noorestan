@@ -11,10 +11,17 @@
     <PackageReference Include="Microsoft.AspNetCore.OpenApi" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Design" PrivateAssets="all" />
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" />
+    <PackageReference Include="SkiaSharp" />
+    <PackageReference Include="SkiaSharp.NativeAssets.Linux" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\Noorestan.MazinoorImport\Noorestan.MazinoorImport.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="SeedData\mazinoor\images\**\*.jpg" CopyToOutputDirectory="PreserveNewest" />
+    <Content Update="SeedData\**\*.json" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
 </Project>

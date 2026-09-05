@@ -1,15 +1,19 @@
+using System.Text.Json.Serialization;
 using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.Antiforgery;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.FileProviders;
 using Noorestan.Api.Features.PublicCatalog;
 using Noorestan.Api.Features.PublicSite;
 using Noorestan.Api.Features.Identity;
 using Noorestan.Api.Features.AdminCatalog;
+using Noorestan.Api.Features.AdminContent;
 using Noorestan.Api.Infrastructure.Auditing;
 using Noorestan.Api.Infrastructure.Identity;
 using Noorestan.Api.Infrastructure.Images;
 using Noorestan.Api.Infrastructure.Persistence;
+using Noorestan.Api.SeedData;
 
 var builder = WebApplication.CreateBuilder(args);
 var connectionString = builder.Configuration.GetConnectionString("Noorestan")
@@ -18,6 +22,11 @@ var connectionString = builder.Configuration.GetConnectionString("Noorestan")
 builder.Services.AddProblemDetails();
 builder.Services.AddOpenApi();
 builder.Services.AddHttpContextAccessor();
+builder.Services.ConfigureHttpJsonOptions(options =>
+{
+    options.SerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
+    options.SerializerOptions.Converters.Add(new JsonStringEnumConverter());
+});
 builder.Services.AddHealthChecks();
 builder.Services.AddDbContext<AppDbContext>(options => options.UseNpgsql(connectionString));
 builder.Services.AddIdentityCore<AdministratorAccount>(options =>
@@ -77,6 +86,36 @@ app.UseRateLimiter();
 app.UseAuthentication();
 app.UseAuthorization();
 
+var objectStorageRoot = Path.Combine(AppContext.BaseDirectory, "object-storage");
+Directory.CreateDirectory(objectStorageRoot);
+app.UseStaticFiles(new StaticFileOptions
+{
+    FileProvider = new PhysicalFileProvider(objectStorageRoot),
+    RequestPath = "/media",
+});
+
+app.Use(async (context, next) =>
+{
+    var path = context.Request.Path;
+    var isProtectedMutation = !HttpMethods.IsGet(context.Request.Method) && !HttpMethods.IsHead(context.Request.Method) && !HttpMethods.IsOptions(context.Request.Method)
+        && (path.StartsWithSegments("/api/v1/admin") || path.StartsWithSegments("/api/v1/owner"));
+    if (isProtectedMutation)
+    {
+        var antiforgery = context.RequestServices.GetRequiredService<IAntiforgery>();
+        try
+        {
+            await antiforgery.ValidateRequestAsync(context);
+        }
+        catch (AntiforgeryValidationException)
+        {
+            context.Response.StatusCode = StatusCodes.Status400BadRequest;
+            await context.Response.WriteAsJsonAsync(new { title = "نشست شما نامعتبر است. صفحه را دوباره بارگذاری کنید.", status = 400 });
+            return;
+        }
+    }
+    await next();
+});
+
 if (app.Environment.IsDevelopment()) app.MapOpenApi();
 app.MapHealthChecks("/health/live", new() { Predicate = _ => false });
 app.MapHealthChecks("/health/ready", new() { Predicate = check => check.Tags.Contains("ready") });
@@ -85,6 +124,9 @@ app.MapPublicCatalogEndpoints();
 app.MapPublicSiteEndpoints();
 app.MapOwnerAccountEndpoints();
 app.MapAdminCatalogEndpoints();
+app.MapProductImageEndpoints();
+app.MapSpecificationEndpoints();
+app.MapAdminSiteEndpoints();
 
 var auth = app.MapGroup("/api/v1/auth");
 auth.MapPost("/login", async (LoginRequest request, SignInManager<AdministratorAccount> signIn, UserManager<AdministratorAccount> users) =>
@@ -115,6 +157,13 @@ auth.MapGet("/session", (HttpContext context, IAntiforgery antiforgery) =>
 if (args.Contains("bootstrap-owner", StringComparer.OrdinalIgnoreCase))
 {
     await OwnerBootstrap.TryRunAsync(app.Services, app.Configuration, CancellationToken.None);
+    return;
+}
+
+if (args.Contains("seed-demo-data", StringComparer.OrdinalIgnoreCase))
+{
+    var seeded = await DemoDataSeeder.RunAsync(app.Services, CancellationToken.None);
+    Console.WriteLine(seeded ? "Demo catalog seeded." : "Demo catalog already seeded; nothing to do.");
     return;
 }
 

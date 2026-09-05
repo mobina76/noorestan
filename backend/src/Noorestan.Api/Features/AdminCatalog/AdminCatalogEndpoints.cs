@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Noorestan.Api.Features.Catalog;
 using Noorestan.Api.Features.Catalog.Search;
+using Noorestan.Api.Infrastructure.Images;
 using Noorestan.Api.Infrastructure.Persistence;
 
 namespace Noorestan.Api.Features.AdminCatalog;
@@ -8,6 +9,8 @@ namespace Noorestan.Api.Features.AdminCatalog;
 public sealed record CategoryWrite(string Slug, string NameFa, string? DescriptionFa, int DisplayOrder, bool IsVisible);
 public sealed record ProductWrite(Guid CategoryId, string Slug, string NameFa, string ShortDescriptionFa, string DescriptionFa, string? TechnicalNotesFa, int DisplayOrder, IReadOnlyList<string> Features);
 public sealed record StatusWrite(ProductStatus TargetStatus);
+public sealed record SpecificationValueWrite(Guid DefinitionId, string? TextValue, decimal? NumericValue, bool? BooleanValue, Guid? ChoiceId);
+public sealed record SpecificationValuesWrite(IReadOnlyList<SpecificationValueWrite> Values);
 
 public static class AdminCatalogEndpoints
 {
@@ -23,6 +26,7 @@ public static class AdminCatalogEndpoints
         group.MapPost("/products", CreateProduct);
         group.MapPut("/products/{id:guid}", UpdateProduct);
         group.MapPost("/products/{id:guid}/status", ChangeStatus);
+        group.MapPut("/products/{id:guid}/specifications", UpdateSpecificationValues);
         group.MapDelete("/products/{id:guid}", DeleteProduct);
         return endpoints;
     }
@@ -48,14 +52,46 @@ public static class AdminCatalogEndpoints
         if (entity.Products.Any(x => x.Status != ProductStatus.Archived)) return Results.Conflict(new { title = "ابتدا محصولات این دسته را منتقل یا بایگانی کنید." });
         db.Categories.Remove(entity); await db.SaveChangesAsync(token); return Results.NoContent();
     }
-    private static async Task<IResult> ListProducts(ProductStatus? status, int page, int pageSize, AppDbContext db, CancellationToken token)
+    private static async Task<IResult> ListProducts(ProductStatus? status, Guid? categoryId, string? q, int? page, int? pageSize, AppDbContext db, IObjectStorage storage, CancellationToken token)
     {
-        page = Math.Max(1, page); pageSize = Math.Clamp(pageSize is 0 ? 24 : pageSize, 1, 100); var query = db.Products.AsNoTracking(); if (status is not null) query = query.Where(x => x.Status == status);
-        return Results.Ok(await query.OrderByDescending(x => x.UpdatedAt).Skip((page - 1) * pageSize).Take(pageSize).Select(x => new { x.Id, x.NameFa, x.Slug, x.MazinoorProductCode, x.Status, x.CategoryId, x.Version, x.UpdatedAt }).ToListAsync(token));
+        var currentPage = Math.Max(1, page ?? 1); var take = Math.Clamp(pageSize ?? 24, 1, 100);
+        var query = db.Products.AsNoTracking().Include(x => x.Category).AsQueryable();
+        if (status is not null) query = query.Where(x => x.Status == status);
+        if (categoryId is not null) query = query.Where(x => x.CategoryId == categoryId);
+        if (!string.IsNullOrWhiteSpace(q))
+        {
+            var normalized = PersianSearchNormalizer.Normalize(q);
+            query = query.Where(x => x.NormalizedNameFa.Contains(normalized) || (x.MazinoorProductCode != null && x.MazinoorProductCode.Contains(q)));
+        }
+        var total = await query.CountAsync(token);
+        var items = await query.OrderByDescending(x => x.UpdatedAt).Skip((currentPage - 1) * take).Take(take)
+            .Select(x => new { x.Id, x.NameFa, x.Slug, x.MazinoorProductCode, x.Status, x.CategoryId, CategoryNameFa = x.Category.NameFa, x.Version, x.UpdatedAt,
+                PrimaryImageUrl = x.Images.Where(i => i.IsPrimary).Select(i => i.OriginalObjectKey).FirstOrDefault() })
+            .ToListAsync(token);
+        return Results.Ok(new { Items = items.Select(x => new { x.Id, x.NameFa, x.Slug, x.MazinoorProductCode, x.Status, x.CategoryId, x.CategoryNameFa, x.Version, x.UpdatedAt, PrimaryImageUrl = x.PrimaryImageUrl is null ? null : storage.GetPublicUrl(x.PrimaryImageUrl) }), Page = currentPage, PageSize = take, Total = total });
     }
-    private static async Task<IResult> GetProduct(Guid id, AppDbContext db, CancellationToken token)
+    private static async Task<IResult> GetProduct(Guid id, AppDbContext db, IObjectStorage storage, CancellationToken token)
     {
-        var entity = await db.Products.AsNoTracking().Include(x => x.Features).Include(x => x.SpecificationValues).Include(x => x.Images).SingleOrDefaultAsync(x => x.Id == id, token); return entity is null ? Results.NotFound() : Results.Ok(entity);
+        var entity = await db.Products.AsNoTracking().AsSplitQuery().Include(x => x.Category)
+            .Include(x => x.Features).Include(x => x.SpecificationValues).ThenInclude(x => x.Definition).ThenInclude(x => x.Choices)
+            .Include(x => x.SpecificationValues).ThenInclude(x => x.Choice)
+            .Include(x => x.Images).ThenInclude(x => x.Variants)
+            .SingleOrDefaultAsync(x => x.Id == id, token);
+        if (entity is null) return Results.NotFound();
+        return Results.Ok(new
+        {
+            entity.Id, entity.Slug, entity.NameFa, entity.MazinoorProductCode, entity.SourceUrl, entity.CategoryId,
+            CategoryNameFa = entity.Category.NameFa, entity.ShortDescriptionFa, entity.DescriptionFa, entity.TechnicalNotesFa,
+            entity.Status, entity.DisplayOrder, entity.Version,
+            Features = entity.Features.OrderBy(f => f.DisplayOrder).Select(f => f.TextFa),
+            Specifications = entity.SpecificationValues.Select(v => new
+            {
+                v.DefinitionId, v.Definition.Key, v.Definition.LabelFa, v.Definition.ValueType, v.Definition.UnitFa, v.Definition.IsRequired,
+                v.TextValue, v.NumericValue, v.BooleanValue, v.ChoiceId,
+                Choices = v.Definition.Choices.Where(c => c.IsActive).OrderBy(c => c.DisplayOrder).Select(c => new { c.Id, c.LabelFa }),
+            }),
+            Images = entity.Images.OrderBy(i => i.DisplayOrder).Select(i => ProductImageEndpoints.ToDto(i, storage)),
+        });
     }
     private static async Task<IResult> CreateProduct(ProductWrite request, AppDbContext db, CancellationToken token)
     {
@@ -66,9 +102,63 @@ public static class AdminCatalogEndpoints
     private static async Task<IResult> UpdateProduct(Guid id, ProductWrite request, HttpRequest http, AppDbContext db, CancellationToken token)
     {
         var error = await ValidateProduct(request, db, token); if (error is not null) return error;
-        var entity = await db.Products.Include(x => x.Features).SingleOrDefaultAsync(x => x.Id == id, token); if (entity is null) return Results.NotFound(); if (!Matches(http, entity.Version)) return Results.Conflict(new { title = "نسخه جدیدتری از محصول ذخیره شده است.", entity.Version });
+        var entity = await db.Products.Include(x => x.Features).Include(x => x.SpecificationValues).SingleOrDefaultAsync(x => x.Id == id, token); if (entity is null) return Results.NotFound(); if (!Matches(http, entity.Version)) return Results.Conflict(new { title = "نسخه جدیدتری از محصول ذخیره شده است.", entity.Version });
+        var categoryChanged = entity.CategoryId != request.CategoryId;
         entity.CategoryId = request.CategoryId; entity.Slug = request.Slug.Trim(); entity.NameFa = request.NameFa.Trim(); entity.NormalizedNameFa = PersianSearchNormalizer.Normalize(request.NameFa); entity.ShortDescriptionFa = request.ShortDescriptionFa.Trim(); entity.DescriptionFa = request.DescriptionFa.Trim(); entity.TechnicalNotesFa = request.TechnicalNotesFa?.Trim(); entity.DisplayOrder = request.DisplayOrder;
-        db.ProductFeatures.RemoveRange(entity.Features); entity.Features = request.Features.Select((text, index) => new ProductFeature { TextFa = text.Trim(), DisplayOrder = index }).ToList(); await db.SaveChangesAsync(token); return Results.Ok(entity);
+        db.ProductFeatures.RemoveRange(entity.Features); entity.Features = request.Features.Select((text, index) => new ProductFeature { TextFa = text.Trim(), DisplayOrder = index }).ToList();
+        if (categoryChanged && entity.SpecificationValues.Count > 0)
+        {
+            var validDefinitionIds = await db.SpecificationDefinitions.Where(x => x.CategoryId == request.CategoryId).Select(x => x.Id).ToListAsync(token);
+            db.ProductSpecificationValues.RemoveRange(entity.SpecificationValues.Where(v => !validDefinitionIds.Contains(v.DefinitionId)));
+        }
+        await db.SaveChangesAsync(token); return Results.Ok(entity);
+    }
+
+    private static async Task<IResult> UpdateSpecificationValues(Guid id, SpecificationValuesWrite request, HttpRequest http, AppDbContext db, CancellationToken token)
+    {
+        var entity = await db.Products.Include(x => x.SpecificationValues).SingleOrDefaultAsync(x => x.Id == id, token);
+        if (entity is null) return Results.NotFound();
+        if (!Matches(http, entity.Version)) return Results.Conflict(new { title = "نسخه جدیدتری از محصول ذخیره شده است.", entity.Version });
+
+        var definitions = await db.SpecificationDefinitions.Include(x => x.Choices).Where(x => x.CategoryId == entity.CategoryId).ToDictionaryAsync(x => x.Id, token);
+        var errors = new Dictionary<string, string[]>();
+        foreach (var value in request.Values)
+        {
+            if (!definitions.TryGetValue(value.DefinitionId, out var definition))
+            {
+                errors[value.DefinitionId.ToString()] = ["این مشخصه به دسته‌بندی محصول تعلق ندارد."];
+                continue;
+            }
+            var provided = definition.ValueType switch
+            {
+                SpecificationValueType.Text => value.TextValue is not null,
+                SpecificationValueType.Number => value.NumericValue is not null,
+                SpecificationValueType.Boolean => value.BooleanValue is not null,
+                SpecificationValueType.Choice => value.ChoiceId is not null && definition.Choices.Any(c => c.Id == value.ChoiceId),
+                _ => false,
+            };
+            if (definition.IsRequired && !provided) errors[definition.Key] = [$"مقدار «{definition.LabelFa}» الزامی است."];
+        }
+        if (errors.Count > 0) return Results.ValidationProblem(errors);
+
+        db.ProductSpecificationValues.RemoveRange(entity.SpecificationValues);
+        await db.SaveChangesAsync(token);
+        foreach (var value in request.Values)
+        {
+            if (!definitions.TryGetValue(value.DefinitionId, out var definition)) continue;
+            db.ProductSpecificationValues.Add(new ProductSpecificationValue
+            {
+                ProductId = id,
+                DefinitionId = value.DefinitionId,
+                TextValue = definition.ValueType == SpecificationValueType.Text ? value.TextValue?.Trim() : null,
+                NormalizedTextValue = definition.ValueType == SpecificationValueType.Text && value.TextValue is not null ? PersianSearchNormalizer.Normalize(value.TextValue) : null,
+                NumericValue = definition.ValueType == SpecificationValueType.Number ? value.NumericValue : null,
+                BooleanValue = definition.ValueType == SpecificationValueType.Boolean ? value.BooleanValue : null,
+                ChoiceId = definition.ValueType == SpecificationValueType.Choice ? value.ChoiceId : null,
+            });
+        }
+        await db.SaveChangesAsync(token);
+        return Results.NoContent();
     }
     private static async Task<IResult> ChangeStatus(Guid id, StatusWrite request, HttpRequest http, AppDbContext db, CancellationToken token)
     {

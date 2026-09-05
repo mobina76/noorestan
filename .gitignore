@@ -13,6 +13,9 @@ packages/
 *.user
 *.suo
 
+# Local portable Postgres instance (dev-only, not for source control)
+.localdb/
+
 # Environment and secrets
 .env
 .env.*
