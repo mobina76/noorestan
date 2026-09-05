@@ -10,6 +10,6 @@ export const appConfig: ApplicationConfig = {
     provideBrowserGlobalErrorListeners(),
     provideRouter(routes),
     provideClientHydration(),
-    provideHttpClient(withFetch(), withInterceptors([csrfInterceptor]))
-  ]
+    provideHttpClient(withFetch(), withInterceptors([csrfInterceptor])),
+  ],
 };

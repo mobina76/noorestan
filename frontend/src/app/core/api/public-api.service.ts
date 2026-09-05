@@ -26,7 +26,9 @@ export class PublicApiService {
   }
 
   categoryFilters(slug: string): Observable<ReadonlyArray<CategoryFilter>> {
-    return this.http.get<ReadonlyArray<CategoryFilter>>(`/api/v1/public/categories/${encodeURIComponent(slug)}/filters`);
+    return this.http.get<ReadonlyArray<CategoryFilter>>(
+      `/api/v1/public/categories/${encodeURIComponent(slug)}/filters`,
+    );
   }
 
   products(query: CatalogQuery): Observable<Page<PublicProductSummary>> {
@@ -39,7 +41,9 @@ export class PublicApiService {
   }
 
   product(slug: string): Observable<PublicProductDetail> {
-    return this.http.get<PublicProductDetail>(`/api/v1/public/products/${encodeURIComponent(slug)}`);
+    return this.http.get<PublicProductDetail>(
+      `/api/v1/public/products/${encodeURIComponent(slug)}`,
+    );
   }
 
   site(): Observable<PublicSite> {

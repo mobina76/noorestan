@@ -1,10 +1,10 @@
 import { expect, test } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
 
-test('homepage presents the Persian representative journey without commerce controls', async ({ page }) => {
+test('homepage presents the real business identity without commerce controls', async ({ page }) => {
   await page.goto('/');
   await expect(page.locator('html')).toHaveAttribute('dir', 'rtl');
-  await expect(page.getByRole('heading', { name: /نور، زبان/ })).toBeVisible();
+  await expect(page.getByRole('heading', { name: /روشنایی حرفه‌ای/ })).toBeVisible();
   await expect(page.getByRole('link', { name: /مشاهده محصولات/ })).toBeVisible();
   await expect(page.getByText('محصولات شاخص')).toBeVisible();
   await expect(page.getByText('چرا نورستان؟')).toBeVisible();
@@ -20,5 +20,14 @@ test('mobile navigation and reduced motion remain usable', async ({ page }) => {
   await page.goto('/');
   const menu = page.getByRole('button', { name: 'نمایش فهرست' });
   await menu.click();
-  await expect(page.getByLabel('ناوبری اصلی').getByRole('link', { name: 'محصولات', exact: true })).toBeVisible();
+  await expect(
+    page.getByLabel('ناوبری اصلی').getByRole('link', { name: 'محصولات', exact: true }),
+  ).toBeVisible();
+});
+
+test('company and contact pages reflect the real business profile', async ({ page }) => {
+  await page.goto('/company');
+  await expect(page.getByRole('heading', { name: 'فروشگاه کالای برق نورستان' })).toBeVisible();
+  await page.goto('/contact');
+  await expect(page.getByText('تهران، خیابان لاله‌زار نو').first()).toBeVisible();
 });

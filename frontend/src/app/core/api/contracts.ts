@@ -179,7 +179,11 @@ export interface AdminProductImage {
   readonly width: number;
   readonly height: number;
   readonly url: string;
-  readonly variants: ReadonlyArray<{ readonly url: string; readonly width: number; readonly height: number }>;
+  readonly variants: ReadonlyArray<{
+    readonly url: string;
+    readonly width: number;
+    readonly height: number;
+  }>;
 }
 
 export interface AdminSpecificationValue {

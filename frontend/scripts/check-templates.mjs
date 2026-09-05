@@ -16,7 +16,9 @@ function visit(path) {
 visit('src');
 const failures = files.flatMap((file) => {
   const content = readFileSync(file, 'utf8');
-  return forbidden.filter((pattern) => pattern.test(content)).map((pattern) => `${file}: ${pattern}`);
+  return forbidden
+    .filter((pattern) => pattern.test(content))
+    .map((pattern) => `${file}: ${pattern}`);
 });
 
 if (failures.length) {

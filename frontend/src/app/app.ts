@@ -3,7 +3,13 @@ import { NavigationEnd, Router, RouterLink, RouterLinkActive, RouterOutlet } fro
 import { filter } from 'rxjs';
 import { SiteStore } from './core/site/site.store';
 
-@Component({ selector: 'app-root', imports: [RouterOutlet, RouterLink, RouterLinkActive], changeDetection: ChangeDetectionStrategy.OnPush, templateUrl: './app.html', styleUrl: './app.css' })
+@Component({
+  selector: 'app-root',
+  imports: [RouterOutlet, RouterLink, RouterLinkActive],
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  templateUrl: './app.html',
+  styleUrl: './app.css',
+})
 export class App {
   private readonly router = inject(Router);
   protected readonly menuOpen = signal(false);
@@ -14,6 +20,8 @@ export class App {
 
   constructor() {
     this.site.load().subscribe();
-    this.router.events.pipe(filter((event) => event instanceof NavigationEnd)).subscribe((event) => this.currentUrl.set((event as NavigationEnd).urlAfterRedirects));
+    this.router.events
+      .pipe(filter((event) => event instanceof NavigationEnd))
+      .subscribe((event) => this.currentUrl.set((event as NavigationEnd).urlAfterRedirects));
   }
 }

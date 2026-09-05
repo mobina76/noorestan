@@ -1,4 +1,4 @@
-@import "tailwindcss";
+@import 'tailwindcss';
 
 :root {
   color-scheme: dark;
@@ -59,10 +59,9 @@ body {
   min-height: 100vh;
   margin: 0;
   background:
-    radial-gradient(circle at 76% -10%, rgb(63 163 224 / 12%), transparent 34rem),
-    var(--color-bg);
+    radial-gradient(circle at 76% -10%, rgb(63 163 224 / 12%), transparent 34rem), var(--color-bg);
   color: var(--color-text);
-  font-family: "Vazirmatn", "IRANSansX", Tahoma, Arial, sans-serif;
+  font-family: 'Vazirmatn', 'IRANSansX', Tahoma, Arial, sans-serif;
   line-height: 1.75;
   text-rendering: optimizeLegibility;
 }
@@ -87,8 +86,12 @@ textarea {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  html { scroll-behavior: auto; }
-  *, *::before, *::after {
+  html {
+    scroll-behavior: auto;
+  }
+  *,
+  *::before,
+  *::after {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     scroll-behavior: auto !important;
@@ -97,5 +100,7 @@ textarea {
 }
 
 @media (forced-colors: active) {
-  :focus-visible { outline-color: Highlight; }
+  :focus-visible {
+    outline-color: Highlight;
+  }
 }
