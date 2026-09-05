@@ -9,11 +9,14 @@ using Noorestan.Api.Features.PublicSite;
 using Noorestan.Api.Features.Identity;
 using Noorestan.Api.Features.AdminCatalog;
 using Noorestan.Api.Features.AdminContent;
+using Noorestan.Api.Features.CatalogImports;
 using Noorestan.Api.Infrastructure.Auditing;
 using Noorestan.Api.Infrastructure.Identity;
 using Noorestan.Api.Infrastructure.Images;
 using Noorestan.Api.Infrastructure.Persistence;
 using Noorestan.Api.SeedData;
+using Noorestan.MazinoorImport.Extraction;
+using Noorestan.MazinoorImport.Retrieval;
 
 var builder = WebApplication.CreateBuilder(args);
 var connectionString = builder.Configuration.GetConnectionString("Noorestan")
@@ -72,6 +75,21 @@ builder.Services.AddRateLimiter(options => options.AddPolicy("login", context =>
 builder.Services.AddScoped<IAuditWriter, AuditWriter>();
 builder.Services.AddSingleton<IObjectStorage, DevelopmentObjectStorage>();
 builder.Services.AddSingleton<IImageProcessor, ImageProcessor>();
+builder.Services.AddSingleton(_ =>
+{
+    var section = builder.Configuration.GetSection("MazinoorImport");
+    return new MazinoorImportOptions
+    {
+        AllowedOrigins = new HashSet<string>(section.GetSection("AllowedOrigins").Get<string[]>() ?? ["https://www.mazinoor.com"], StringComparer.OrdinalIgnoreCase),
+        RequestTimeout = TimeSpan.FromSeconds(section.GetValue("RequestTimeoutSeconds", 20)),
+        MaximumResponseBytes = section.GetValue<long>("MaximumResponseBytes", 5 * 1024 * 1024),
+        MaximumConcurrency = section.GetValue("MaximumConcurrency", 3),
+        MaximumRetries = section.GetValue("MaximumRetries", 2),
+    };
+});
+builder.Services.AddHttpClient<MazinoorHttpSource>();
+builder.Services.AddScoped<MazinoorExtractor>();
+builder.Services.AddScoped<MazinoorImportRunner>();
 
 var app = builder.Build();
 app.UseExceptionHandler();
@@ -127,6 +145,7 @@ app.MapAdminCatalogEndpoints();
 app.MapProductImageEndpoints();
 app.MapSpecificationEndpoints();
 app.MapAdminSiteEndpoints();
+app.MapMazinoorImportEndpoints();
 
 var auth = app.MapGroup("/api/v1/auth");
 auth.MapPost("/login", async (LoginRequest request, SignInManager<AdministratorAccount> signIn, UserManager<AdministratorAccount> users) =>

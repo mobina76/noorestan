@@ -36,6 +36,31 @@ public sealed class MazinoorHttpSource(HttpClient client, MazinoorImportOptions 
         }
     }
 
+    public async Task<(byte[] Content, string MediaType)> GetBinaryAsync(Uri uri, CancellationToken cancellationToken)
+    {
+        ValidateUri(uri);
+        using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        timeout.CancelAfter(options.RequestTimeout);
+        for (var attempt = 0; ; attempt++)
+        {
+            try
+            {
+                using var response = await client.GetAsync(uri, HttpCompletionOption.ResponseHeadersRead, timeout.Token);
+                response.EnsureSuccessStatusCode();
+                if (response.Content.Headers.ContentLength > options.MaximumResponseBytes) throw new InvalidDataException("Source image is too large.");
+                var mediaType = response.Content.Headers.ContentType?.MediaType;
+                if (mediaType is not ("image/jpeg" or "image/png" or "image/webp")) throw new InvalidDataException("Source did not return a supported image type.");
+                var bytes = await response.Content.ReadAsByteArrayAsync(timeout.Token);
+                if (bytes.LongLength > options.MaximumResponseBytes) throw new InvalidDataException("Source image is too large.");
+                return (bytes, mediaType);
+            }
+            catch (HttpRequestException) when (attempt < options.MaximumRetries)
+            {
+                await Task.Delay(TimeSpan.FromMilliseconds(250 * Math.Pow(2, attempt)), timeout.Token);
+            }
+        }
+    }
+
     public void ValidateUri(Uri uri)
     {
         if (uri.Scheme != Uri.UriSchemeHttps || !options.AllowedOrigins.Contains(uri.GetLeftPart(UriPartial.Authority)))
